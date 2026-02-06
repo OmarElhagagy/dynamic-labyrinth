@@ -17,8 +17,8 @@ services:
       - ORCHESTRATOR_HMAC_SECRET=dev-secret-not-for-production
     ports:
       - "8000:8000"  # Expose orchestrator directly in dev
-    volumes:
-      - ./orchestrator:/app:ro  # Mount source for hot reload
+    # Note: Don't override /app volume - it breaks the data directory
+    # The base docker-compose.yml mounts orchestrator_data:/app/data correctly
     command: ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
 
   # ===========================================================================
