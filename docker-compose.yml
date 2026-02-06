@@ -131,14 +131,18 @@ services:
       backend:
         ipv4_address: 10.0.2.100
       management:
+    # Note: Removed strict health dependency - orchestrator handles honeytrap
+    # unavailability gracefully. Health checks remain for monitoring.
     depends_on:
-      honeytrap-level1-1:
-        condition: service_healthy
+      - honeytrap-level1-1
+      - honeytrap-level2-1
+      - honeytrap-level3-1
     healthcheck:
       test: ["CMD", "curl", "-sf", "http://localhost:8000/healthz"]
       interval: 30s
       timeout: 5s
       retries: 3
+      start_period: 10s
     logging:
       driver: json-file
       options:

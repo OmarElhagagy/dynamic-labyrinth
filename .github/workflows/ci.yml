@@ -252,34 +252,29 @@ jobs:
       - name: Start services with docker compose
         run: |
           cp .env.example .env
-          # Start honeytrap containers first without waiting for dependencies
-          docker compose -f docker-compose.yml -f docker-compose.override.yml up -d --build honeytrap-level1-1 honeytrap-level2-1 honeytrap-level3-1
-          
-          # Wait for honeytrap containers to be healthy (30s start_period + some margin)
-          echo "Waiting for honeytrap containers to initialize..."
-          sleep 35
-          
-          # Check honeytrap health status
-          echo "Honeytrap container status:"
-          docker compose ps honeytrap-level1-1
-          
-          # Start remaining services
+          # Start all services - orchestrator no longer has strict health dependency
           docker compose -f docker-compose.yml -f docker-compose.override.yml up -d --build
+          
+          # Show initial container status
+          echo "Initial container status:"
+          docker compose ps
         env:
           HMAC_SECRET: integration-test-secret
 
       - name: Wait for services to be healthy
         run: |
-          echo "Container status before waiting:"
-          docker compose ps
+          echo "Waiting for orchestrator to become healthy..."
           
-          # Wait for orchestrator with extended timeout
+          # Wait for orchestrator with extended timeout (allows honeytrap to initialize)
           timeout 180 bash -c 'until curl -sf http://localhost:8000/healthz; do 
-            echo "Waiting for orchestrator... (checking container status)"
-            docker compose ps orchestrator 2>/dev/null || true
+            echo "Waiting for orchestrator..."
             sleep 5
           done'
           echo "Orchestrator is healthy"
+          
+          # Show final container status
+          echo "Final container status:"
+          docker compose ps
 
       - name: Run integration tests
         run: |
