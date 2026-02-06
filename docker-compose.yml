@@ -10,8 +10,6 @@
 # - Supporting services
 # =============================================================================
 
-version: "3.9"
-
 # =============================================================================
 # Networks
 # =============================================================================
@@ -107,8 +105,8 @@ services:
   # ===========================================================================
   orchestrator:
     build:
-      context: .
-      dockerfile: orchestrator/Dockerfile
+      context: ./orchestrator
+      dockerfile: Dockerfile
     container_name: orchestrator
     restart: unless-stopped
     environment:
