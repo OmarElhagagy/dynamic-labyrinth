@@ -138,38 +138,46 @@ class TestNginxReload:
     @pytest.mark.asyncio
     async def test_reload_success(self):
         """Test successful nginx reload."""
+        import subprocess
+
         from nginx_writer import NginxWriter
 
         writer = NginxWriter()
 
-        with patch("asyncio.create_subprocess_exec", new_callable=AsyncMock) as mock_exec:
-            mock_process = MagicMock()
-            mock_process.wait = AsyncMock(return_value=0)
-            mock_process.returncode = 0
-            mock_exec.return_value = mock_process
+        # Mock the health check and command execution
+        with (
+            patch.object(writer, "_nginx_health_check", new_callable=AsyncMock) as mock_health,
+            patch.object(writer, "_run_command", new_callable=AsyncMock) as mock_run,
+        ):
+            mock_health.return_value = True
+            mock_run.return_value = subprocess.CompletedProcess(
+                args="nginx -t", returncode=0, stdout="", stderr=""
+            )
 
             result = await writer.reload_nginx()
 
-            # Should return True or call the subprocess
-            assert result is True or mock_exec.called
+            assert result is True
+            mock_health.assert_called_once()
+            assert mock_run.call_count >= 1  # At least config test
 
     @pytest.mark.asyncio
     async def test_reload_failure_handling(self):
-        """Test nginx reload failure handling."""
+        """Test nginx reload failure handling when health check fails."""
         from nginx_writer import NginxWriter
 
         writer = NginxWriter()
 
-        with patch("asyncio.create_subprocess_exec", new_callable=AsyncMock) as mock_exec:
-            mock_process = MagicMock()
-            mock_process.wait = AsyncMock(return_value=1)
-            mock_process.returncode = 1
-            mock_exec.return_value = mock_process
+        # Mock health check to fail
+        with patch.object(
+            writer, "_nginx_health_check", new_callable=AsyncMock
+        ) as mock_health:
+            mock_health.return_value = False
 
             result = await writer.reload_nginx()
 
-            # Should return False or handle error
-            assert result is False or mock_exec.called
+            # Should return False when health check fails
+            assert result is False
+            mock_health.assert_called_once()
 
 
 class TestConfigValidation:

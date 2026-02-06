@@ -178,12 +178,12 @@ class TestHMACMiddleware:
     @pytest.mark.asyncio
     async def test_exempt_paths_bypass_auth(self, client):
         """Test that exempt paths don't require authentication."""
-        # /healthz is exempt
+        # /healthz is exempt - uses client with auth disabled but pool manager injected
         response = await client.get("/healthz")
         assert response.status_code == 200
 
     @pytest.mark.asyncio
-    async def test_missing_headers_rejected(self, client):
+    async def test_missing_headers_rejected(self, auth_client):
         """Test that requests without HMAC headers are rejected."""
         import json
 
@@ -197,7 +197,7 @@ class TestHMACMiddleware:
             }
         )
 
-        response = await client.post(
+        response = await auth_client.post(
             "/escalate",
             content=body,
             headers={"Content-Type": "application/json"},
@@ -207,7 +207,7 @@ class TestHMACMiddleware:
         assert response.status_code == 401
 
     @pytest.mark.asyncio
-    async def test_missing_signature_rejected(self, client):
+    async def test_missing_signature_rejected(self, auth_client):
         """Test that missing signature is rejected."""
         import json
 
@@ -222,7 +222,7 @@ class TestHMACMiddleware:
             }
         )
 
-        response = await client.post(
+        response = await auth_client.post(
             "/escalate",
             content=body,
             headers={
@@ -235,7 +235,7 @@ class TestHMACMiddleware:
         assert response.status_code == 401
 
     @pytest.mark.asyncio
-    async def test_missing_timestamp_rejected(self, client):
+    async def test_missing_timestamp_rejected(self, auth_client):
         """Test that missing timestamp is rejected."""
         import json
 
@@ -249,7 +249,7 @@ class TestHMACMiddleware:
             }
         )
 
-        response = await client.post(
+        response = await auth_client.post(
             "/escalate",
             content=body,
             headers={
@@ -262,7 +262,7 @@ class TestHMACMiddleware:
         assert response.status_code == 401
 
     @pytest.mark.asyncio
-    async def test_valid_request_accepted(self, client):
+    async def test_valid_request_accepted(self, auth_client):
         """Test that valid HMAC request is accepted."""
         import json
 
@@ -285,7 +285,7 @@ class TestHMACMiddleware:
         )
         headers["Content-Type"] = "application/json"
 
-        response = await client.post(
+        response = await auth_client.post(
             "/escalate",
             content=body,
             headers=headers,
@@ -295,7 +295,7 @@ class TestHMACMiddleware:
         assert response.status_code in [200, 503]
 
     @pytest.mark.asyncio
-    async def test_invalid_signature_rejected(self, client):
+    async def test_invalid_signature_rejected(self, auth_client):
         """Test that invalid signature is rejected."""
         import json
 
@@ -310,7 +310,7 @@ class TestHMACMiddleware:
             }
         )
 
-        response = await client.post(
+        response = await auth_client.post(
             "/escalate",
             content=body,
             headers={
@@ -324,7 +324,7 @@ class TestHMACMiddleware:
         assert response.status_code == 401
 
     @pytest.mark.asyncio
-    async def test_tampered_body_rejected(self, client):
+    async def test_tampered_body_rejected(self, auth_client):
         """Test that tampered body is rejected."""
         import json
 
@@ -363,7 +363,7 @@ class TestHMACMiddleware:
         headers["Content-Type"] = "application/json"
 
         # Send tampered body
-        response = await client.post(
+        response = await auth_client.post(
             "/escalate",
             content=tampered_body,
             headers=headers,

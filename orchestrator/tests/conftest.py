@@ -13,14 +13,23 @@ from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
-# Set test environment
+# Set test environment BEFORE importing app modules
 os.environ["ENVIRONMENT"] = "test"
+os.environ["DEBUG"] = "true"  # Disable HMAC enforcement
 os.environ["HMAC_SECRET"] = "test-secret-key-for-testing-only"
 os.environ["DATABASE_URL"] = "sqlite+aiosqlite:///:memory:"
 
+# Clear the settings cache to ensure our env vars are picked up
+# This must be done before any imports that use get_settings()
+import config
+
+config.get_settings.cache_clear()
+
 from config import get_settings
 from database import Base
-from main import app, get_db
+from main import app, get_db, get_pool_manager
+from models import PoolStatus
+from pool_manager import PoolManager
 
 settings = get_settings()
 
@@ -69,34 +78,125 @@ async def db_session(async_engine) -> AsyncGenerator[AsyncSession, None]:
 
 
 @pytest.fixture(scope="function")
-async def client(db_session: AsyncSession) -> AsyncGenerator[AsyncClient, None]:
-    """Create async HTTP client for testing API endpoints."""
+def test_pool_manager() -> PoolManager:
+    """Create a real PoolManager instance for testing."""
+    from config import get_pool_config
+
+    return PoolManager(get_pool_config())
+
+
+def _get_hmac_middleware():
+    """Get the HMAC middleware from the app's middleware stack."""
+    from middleware.auth import HMACAuthMiddleware
+
+    # Walk the middleware stack to find HMAC middleware
+    middleware_stack = app.middleware_stack
+    while middleware_stack is not None:
+        if isinstance(middleware_stack, HMACAuthMiddleware):
+            return middleware_stack
+        middleware_stack = getattr(middleware_stack, "app", None)
+    return None
+
+
+@pytest.fixture(scope="function")
+async def client(
+    db_session: AsyncSession, test_pool_manager: PoolManager
+) -> AsyncGenerator[AsyncClient, None]:
+    """
+    Create async HTTP client for testing API endpoints.
+    HMAC authentication is DISABLED for this client.
+    """
 
     async def override_get_db():
         yield db_session
 
+    def override_get_pool_manager() -> PoolManager:
+        return test_pool_manager
+
     app.dependency_overrides[get_db] = override_get_db
+    app.dependency_overrides[get_pool_manager] = override_get_pool_manager
 
     async with AsyncClient(app=app, base_url="http://test") as ac:
+        # After first request, middleware stack is built - now we can patch it
+        # Make a dummy request to build the stack
+        await ac.get("/")
+
+        # Now disable HMAC enforcement
+        hmac_mw = _get_hmac_middleware()
+        original_enforce = None
+        if hmac_mw:
+            original_enforce = hmac_mw.enforce
+            hmac_mw.enforce = False
+            hmac_mw.settings = settings  # Ensure debug=True for fallback
+
         yield ac
+
+        # Restore original enforce value
+        if hmac_mw and original_enforce is not None:
+            hmac_mw.enforce = original_enforce
+
+    app.dependency_overrides.clear()
+
+
+@pytest.fixture(scope="function")
+async def auth_client(
+    db_session: AsyncSession, test_pool_manager: PoolManager
+) -> AsyncGenerator[AsyncClient, None]:
+    """
+    Create async HTTP client for testing auth behavior.
+    HMAC authentication is ENABLED for this client.
+    """
+
+    async def override_get_db():
+        yield db_session
+
+    def override_get_pool_manager() -> PoolManager:
+        return test_pool_manager
+
+    app.dependency_overrides[get_db] = override_get_db
+    app.dependency_overrides[get_pool_manager] = override_get_pool_manager
+
+    async with AsyncClient(app=app, base_url="http://test") as ac:
+        # Make a dummy request to build middleware stack
+        await ac.get("/")
+
+        # Ensure HMAC enforcement is ON
+        hmac_mw = _get_hmac_middleware()
+        original_enforce = None
+        if hmac_mw:
+            original_enforce = hmac_mw.enforce
+            hmac_mw.enforce = True
+
+        yield ac
+
+        # Restore original enforce value
+        if hmac_mw and original_enforce is not None:
+            hmac_mw.enforce = original_enforce
 
     app.dependency_overrides.clear()
 
 
 @pytest.fixture
 def mock_pool_manager():
-    """Create a mock pool manager."""
-    manager = MagicMock()
-    manager.assign_container = AsyncMock(return_value="honeytrap-level1-1")
-    manager.release_container = AsyncMock(return_value=True)
+    """Create a mock pool manager with proper return types."""
+    manager = MagicMock(spec=PoolManager)
+    manager.assign_container = AsyncMock(return_value=None)
+    manager.release_session = AsyncMock(return_value=True)
+    manager.get_session = AsyncMock(return_value=None)
+    manager.update_session_score = AsyncMock(return_value=None)
+    manager.log_decision = AsyncMock(return_value=None)
+    manager.cleanup_expired_sessions = AsyncMock(return_value=0)
+    manager.get_total_session_count = AsyncMock(return_value=0)
+    manager.generate_session_cookie = MagicMock(return_value="dlsess_test123")
+
+    # Return proper PoolStatus objects
     manager.get_pool_status = AsyncMock(
-        return_value={
-            "level1": {"available": 5, "in_use": 0, "unhealthy": 0, "status": "healthy"},
-            "level2": {"available": 3, "in_use": 0, "unhealthy": 0, "status": "healthy"},
-            "level3": {"available": 1, "in_use": 0, "unhealthy": 0, "status": "healthy"},
-        }
+        return_value=[
+            PoolStatus(level=1, total=5, idle=5, assigned=0, unhealthy=0),
+            PoolStatus(level=2, total=3, idle=3, assigned=0, unhealthy=0),
+            PoolStatus(level=3, total=1, idle=1, assigned=0, unhealthy=0),
+        ]
     )
-    manager.health_check = AsyncMock(return_value=True)
     return manager
 
 
