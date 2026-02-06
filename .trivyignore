@@ -1,0 +1,16 @@
+# =============================================================================
+# Trivy Vulnerability Ignore File
+# =============================================================================
+# Add CVE IDs to ignore known false positives or accepted risks.
+# Each line should contain one CVE ID.
+# Comments start with #
+#
+# Format:
+#   CVE-YYYY-NNNNN
+#
+# Example:
+#   CVE-2023-12345  # Accepted risk: only affects feature X which is disabled
+# =============================================================================
+
+# Add known false positives or accepted risks below:
+

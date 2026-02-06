@@ -4,7 +4,7 @@ Pytest configuration and fixtures for orchestrator tests.
 
 import asyncio
 import os
-from typing import AsyncGenerator, Generator
+from collections.abc import AsyncGenerator, Generator
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
@@ -18,9 +18,9 @@ os.environ["ENVIRONMENT"] = "test"
 os.environ["HMAC_SECRET"] = "test-secret-key-for-testing-only"
 os.environ["DATABASE_URL"] = "sqlite+aiosqlite:///:memory:"
 
-from database import Base, get_db_session
-from main import app, get_db
 from config import get_settings
+from database import Base
+from main import app, get_db
 
 settings = get_settings()
 
@@ -42,15 +42,15 @@ async def async_engine():
         poolclass=StaticPool,
         echo=False,
     )
-    
+
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
-    
+
     yield engine
-    
+
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.drop_all)
-    
+
     await engine.dispose()
 
 
@@ -62,7 +62,7 @@ async def db_session(async_engine) -> AsyncGenerator[AsyncSession, None]:
         class_=AsyncSession,
         expire_on_commit=False,
     )
-    
+
     async with async_session_maker() as session:
         yield session
         await session.rollback()
@@ -71,15 +71,15 @@ async def db_session(async_engine) -> AsyncGenerator[AsyncSession, None]:
 @pytest.fixture(scope="function")
 async def client(db_session: AsyncSession) -> AsyncGenerator[AsyncClient, None]:
     """Create async HTTP client for testing API endpoints."""
-    
+
     async def override_get_db():
         yield db_session
-    
+
     app.dependency_overrides[get_db] = override_get_db
-    
+
     async with AsyncClient(app=app, base_url="http://test") as ac:
         yield ac
-    
+
     app.dependency_overrides.clear()
 
 
@@ -89,11 +89,13 @@ def mock_pool_manager():
     manager = MagicMock()
     manager.assign_container = AsyncMock(return_value="honeytrap-level1-1")
     manager.release_container = AsyncMock(return_value=True)
-    manager.get_pool_status = AsyncMock(return_value={
-        "level1": {"available": 5, "in_use": 0, "unhealthy": 0, "status": "healthy"},
-        "level2": {"available": 3, "in_use": 0, "unhealthy": 0, "status": "healthy"},
-        "level3": {"available": 1, "in_use": 0, "unhealthy": 0, "status": "healthy"},
-    })
+    manager.get_pool_status = AsyncMock(
+        return_value={
+            "level1": {"available": 5, "in_use": 0, "unhealthy": 0, "status": "healthy"},
+            "level2": {"available": 3, "in_use": 0, "unhealthy": 0, "status": "healthy"},
+            "level3": {"available": 1, "in_use": 0, "unhealthy": 0, "status": "healthy"},
+        }
+    )
     manager.health_check = AsyncMock(return_value=True)
     return manager
 
@@ -138,12 +140,9 @@ def sample_session_data():
 def auth_headers():
     """Generate valid HMAC authentication headers for GET request to /pools."""
     from middleware.auth import generate_hmac_headers
-    
+
     headers = generate_hmac_headers(
-        secret=settings.hmac_secret,
-        method="GET",
-        path="/pools",
-        body=b""
+        secret=settings.hmac_secret, method="GET", path="/pools", body=b""
     )
     return headers
 
@@ -151,22 +150,19 @@ def auth_headers():
 def generate_auth_headers(body: str = "", method: str = "POST", path: str = "/escalate") -> dict:
     """
     Helper function to generate auth headers with custom body.
-    
+
     Args:
         body: Request body as string (default: empty)
         method: HTTP method (default: POST)
         path: Request path (default: /escalate)
-    
+
     Returns:
         Dict with X-HMAC-Signature and X-HMAC-Timestamp headers
     """
     from middleware.auth import generate_hmac_headers
-    
+
     body_bytes = body.encode() if isinstance(body, str) else body
     headers = generate_hmac_headers(
-        secret=settings.hmac_secret,
-        method=method,
-        path=path,
-        body=body_bytes
+        secret=settings.hmac_secret, method=method, path=path, body=body_bytes
     )
     return headers

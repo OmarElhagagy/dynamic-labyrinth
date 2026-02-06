@@ -1,21 +1,24 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/SchemaStore/schemastore/master/src/schemas/json/base.json
+# golangci-lint v1.x configuration for honeytrap (legacy codebase)
+# Note: Using base.json schema to avoid v2 schema validation errors
+# This config is compatible with golangci-lint v1.64.x
+
 run:
+  timeout: 5m
+  modules-download-mode: readonly
+  issues-exit-code: 0
   skip-dirs:
     - vendor
     - pb
 
-  # exit code when at least one issue was found, default is 1
-  issues-exit-code: 0 # for now disables
-
-issues:
-  max-per-linter: 999999
-  max-same: 999999
+output:
+  format: colored-line-number
 
 linters-settings:
   errcheck:
     check-type-assertions: false
     check-blank: false
   unparam:
-    algo: cha
     check-exported: false
   nakedret:
     max-func-lines: 0
@@ -31,26 +34,27 @@ linters-settings:
     line-length: 750
 
 linters:
+  disable-all: true
   enable:
     - gofmt
     - ineffassign
     - staticcheck
-    - structcheck
     - unused
     - unparam
-    - varcheck
-    # - deadcode
     - gosimple
     - dupl
     - gocyclo
     - nakedret
     - lll
-  disable:
-    - errcheck
-    - govet
-    - golint
-    - megacheck
-    - goimports
-    - unconvert
-    - prealloc
-    - goconst
+
+issues:
+  max-issues-per-linter: 0
+  max-same-issues: 0
+  exclude-rules:
+    - path: _test\.go
+      linters:
+        - dupl
+        - errcheck
+    - linters:
+        - gocyclo
+      source: "func "

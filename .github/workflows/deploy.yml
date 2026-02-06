@@ -2,6 +2,13 @@
 # Dynamic Labyrinth - Deployment Workflow
 # =============================================================================
 # Deploys to staging or production environments.
+# 
+# REQUIREMENTS:
+# Before auto-deploy works, configure these repository secrets:
+# - DEPLOY_SSH_KEY: SSH private key for deployment server
+# - DEPLOY_HOST: Hostname/IP of deployment server
+# - DEPLOY_USER: SSH username on deployment server
+# - DEPLOY_ENABLED: Set to "true" to enable auto-deploy on push
 
 name: Deploy
 
@@ -21,7 +28,7 @@ on:
         required: true
         default: 'latest'
 
-  # Auto-deploy to staging on main branch push
+  # Auto-deploy to staging on main branch push (only if DEPLOY_ENABLED=true)
   push:
     branches: [main]
     paths:
@@ -40,11 +47,49 @@ env:
 
 jobs:
   # ==========================================================================
+  # Pre-flight Check - Verify deployment prerequisites
+  # ==========================================================================
+  preflight:
+    name: Pre-flight Check
+    runs-on: ubuntu-latest
+    outputs:
+      can_deploy: ${{ steps.check.outputs.can_deploy }}
+    steps:
+      - name: Check deployment prerequisites
+        id: check
+        run: |
+          # For manual workflow_dispatch, always allow (user explicitly triggered)
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "Manual deployment triggered"
+            echo "can_deploy=true" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+          
+          # For push events, check if DEPLOY_ENABLED is set
+          if [ "${{ secrets.DEPLOY_ENABLED }}" != "true" ]; then
+            echo "::notice::Auto-deploy is disabled. Set DEPLOY_ENABLED=true in repository secrets to enable."
+            echo "can_deploy=false" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+          
+          # Check required secrets exist (will be empty string if not set)
+          if [ -z "${{ secrets.DEPLOY_SSH_KEY }}" ] || [ -z "${{ secrets.DEPLOY_HOST }}" ] || [ -z "${{ secrets.DEPLOY_USER }}" ]; then
+            echo "::notice::Deployment secrets not configured. Set DEPLOY_SSH_KEY, DEPLOY_HOST, and DEPLOY_USER."
+            echo "can_deploy=false" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+          
+          echo "All deployment prerequisites met"
+          echo "can_deploy=true" >> $GITHUB_OUTPUT
+
+  # ==========================================================================
   # Deploy to Environment
   # ==========================================================================
   deploy:
     name: Deploy to ${{ github.event.inputs.environment || 'staging' }}
     runs-on: ubuntu-latest
+    needs: preflight
+    if: needs.preflight.outputs.can_deploy == 'true'
     environment: ${{ github.event.inputs.environment || 'staging' }}
 
     steps:

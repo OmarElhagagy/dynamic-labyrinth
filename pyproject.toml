@@ -88,6 +88,14 @@ exclude = ["tests", "migrations"]
 [tool.ruff]
 line-length = 100
 target-version = "py311"
+exclude = [
+    ".git",
+    ".venv",
+    "__pycache__",
+    "migrations",
+]
+
+[tool.ruff.lint]
 select = [
     "E",   # pycodestyle errors
     "W",   # pycodestyle warnings
@@ -100,10 +108,4 @@ select = [
 ignore = [
     "E501",  # line too long (handled by black)
     "B008",  # do not perform function calls in argument defaults
-]
-exclude = [
-    ".git",
-    ".venv",
-    "__pycache__",
-    "migrations",
 ]

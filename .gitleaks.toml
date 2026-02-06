@@ -1,0 +1,44 @@
+# =============================================================================
+# Gitleaks Configuration
+# =============================================================================
+# Customizes secret scanning rules for Dynamic Labyrinth project.
+# See: https://github.com/gitleaks/gitleaks#configuration
+
+[extend]
+# Use the default gitleaks configuration as base
+useDefault = true
+
+# =============================================================================
+# Allowlist - Files and patterns to exclude from scanning
+# =============================================================================
+[allowlist]
+description = "Global allowlist"
+paths = [
+    # Test fixtures with fake/example secrets
+    '''orchestrator/tests/.*''',
+    '''tests/.*''',
+    # Example configuration files
+    '''.env.example''',
+    '''.*\.example''',
+    # Documentation with example values
+    '''docs/.*\.md''',
+    # Generated files
+    '''.*\.pb\.go''',
+]
+regexTarget = "match"
+
+# =============================================================================
+# Custom rules for this project
+# =============================================================================
+[[rules]]
+id = "dynamic-labyrinth-test-secret"
+description = "Test secrets used in unit tests"
+regex = '''dlsess_[a-zA-Z0-9]{32}'''
+allowlist = { paths = ['''.*test.*'''] }
+
+# Ignore example HMAC secrets in test files
+[[rules]]
+id = "test-hmac-secret"
+description = "Example HMAC secrets in tests"
+regex = '''test[-_]?secret[-_]?key'''
+allowlist = { paths = ['''.*'''] }
