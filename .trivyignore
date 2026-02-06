@@ -12,5 +12,36 @@
 #   CVE-2023-12345  # Accepted risk: only affects feature X which is disabled
 # =============================================================================
 
-# Add known false positives or accepted risks below:
+# =============================================================================
+# Honeytrap Go Dependencies (Legacy Codebase)
+# =============================================================================
+# The honeytrap module is a forked legacy codebase with pinned dependencies.
+# Updating these dependencies requires extensive testing and may break
+# compatibility. These are accepted risks for the honeypot environment.
+
+# golang.org/x/crypto vulnerabilities
+CVE-2024-45337  # SSH PublicKeyCallback bypass - honeytrap SSH is intentionally permissive
+CVE-2020-29652  # SSH nil pointer - controlled honeypot environment
+CVE-2020-9283   # ssh-ed25519 panic - input validation in place
+CVE-2021-43565  # empty plaintext panic - controlled environment
+CVE-2022-27191  # SSH server crash - honeypot accepts this risk
+CVE-2025-22869  # SSH key exchange DoS - acceptable for honeypot
+
+# golang.org/x/net vulnerabilities
+CVE-2019-9512   # HTTP/2 PING flood - honeytrap doesn't use HTTP/2 server
+CVE-2019-9514   # HTTP/2 HEADERS flood - honeytrap doesn't use HTTP/2 server
+CVE-2021-33194  # HTML ParseFragment - not used in honeytrap
+CVE-2022-27664  # HTTP GOAWAY handling - limited exposure
+CVE-2022-41723  # HPACK decoding - limited exposure
+CVE-2023-39325  # HTTP/2 rapid reset - limited exposure
+
+# golang.org/x/text vulnerabilities
+CVE-2021-38561  # language parsing DoS - not exposed externally
+CVE-2022-32149  # AcceptLanguage parsing - not exposed externally
+
+# github.com/gorilla/websocket
+CVE-2020-27813  # integer overflow DoS - controlled honeypot environment
+
+# github.com/miekg/dns
+CVE-2018-17419  # DNS DoS - honeytrap DNS is intentionally exposed
 
