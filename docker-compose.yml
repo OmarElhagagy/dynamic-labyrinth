@@ -45,7 +45,16 @@ volumes:
   orchestrator_data:
   nginx_maps:
   honeytrap_logs:
-  honeytrap_data:
+  # Separate data volumes for each honeytrap instance (BadgerDB requires exclusive locks)
+  honeytrap_data_l1_1:
+  honeytrap_data_l1_2:
+  honeytrap_data_l1_3:
+  honeytrap_data_l1_4:
+  honeytrap_data_l1_5:
+  honeytrap_data_l2_1:
+  honeytrap_data_l2_2:
+  honeytrap_data_l2_3:
+  honeytrap_data_l3_1:
 
 # =============================================================================
 # Services
@@ -151,7 +160,7 @@ services:
       - HONEYTRAP_INSTANCE=1
     volumes:
       - honeytrap_logs:/logs
-      - honeytrap_data:/data
+      - honeytrap_data_l1_1:/data
     networks:
       backend:
         ipv4_address: 10.0.2.11
@@ -177,7 +186,7 @@ services:
       - HONEYTRAP_INSTANCE=2
     volumes:
       - honeytrap_logs:/logs
-      - honeytrap_data:/data
+      - honeytrap_data_l1_2:/data
     networks:
       backend:
         ipv4_address: 10.0.2.12
@@ -203,7 +212,7 @@ services:
       - HONEYTRAP_INSTANCE=3
     volumes:
       - honeytrap_logs:/logs
-      - honeytrap_data:/data
+      - honeytrap_data_l1_3:/data
     networks:
       backend:
         ipv4_address: 10.0.2.13
@@ -229,7 +238,7 @@ services:
       - HONEYTRAP_INSTANCE=4
     volumes:
       - honeytrap_logs:/logs
-      - honeytrap_data:/data
+      - honeytrap_data_l1_4:/data
     networks:
       backend:
         ipv4_address: 10.0.2.14
@@ -255,7 +264,7 @@ services:
       - HONEYTRAP_INSTANCE=5
     volumes:
       - honeytrap_logs:/logs
-      - honeytrap_data:/data
+      - honeytrap_data_l1_5:/data
     networks:
       backend:
         ipv4_address: 10.0.2.15
@@ -284,7 +293,7 @@ services:
       - HONEYTRAP_INSTANCE=1
     volumes:
       - honeytrap_logs:/logs
-      - honeytrap_data:/data
+      - honeytrap_data_l2_1:/data
     networks:
       backend:
         ipv4_address: 10.0.2.21
@@ -310,7 +319,7 @@ services:
       - HONEYTRAP_INSTANCE=2
     volumes:
       - honeytrap_logs:/logs
-      - honeytrap_data:/data
+      - honeytrap_data_l2_2:/data
     networks:
       backend:
         ipv4_address: 10.0.2.22
@@ -336,7 +345,7 @@ services:
       - HONEYTRAP_INSTANCE=3
     volumes:
       - honeytrap_logs:/logs
-      - honeytrap_data:/data
+      - honeytrap_data_l2_3:/data
     networks:
       backend:
         ipv4_address: 10.0.2.23
@@ -365,7 +374,7 @@ services:
       - HONEYTRAP_INSTANCE=1
     volumes:
       - honeytrap_logs:/logs
-      - honeytrap_data:/data
+      - honeytrap_data_l3_1:/data
     networks:
       backend:
         ipv4_address: 10.0.2.31
