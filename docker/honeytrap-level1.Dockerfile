@@ -41,8 +41,6 @@ LABEL interaction="low"
 RUN apk --no-cache add \
     ca-certificates \
     tzdata \
-    netcat-openbsd \
-    procps \
     && update-ca-certificates
 
 # Create directories
@@ -70,9 +68,9 @@ ENV HONEYTRAP_LEVEL=1 \
 # SSH: 22, HTTP: 80, Telnet: 23
 EXPOSE 22 80 23
 
-# Health check - verify honeytrap process is running and port 22 is listening
+# Health check - verify honeytrap process is running
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-    CMD pgrep honeytrap > /dev/null && nc -z localhost 22 || exit 1
+    CMD pidof honeytrap > /dev/null || exit 1
 
 # Volume for persistent data
 VOLUME ["/data", "/logs"]
