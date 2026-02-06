@@ -51,7 +51,7 @@ require (
 	github.com/smartystreets/goconvey v0.0.0-20190330032615-68dc04aab96a // indirect
 	github.com/songgao/packets v0.0.0-20160404182456-549a10cd4091
 	github.com/songgao/water v0.0.0-20180221190335-75f112d19d5a
-	github.com/streadway/amqp v0.0.0-20180315184602-8e4aba63da9f
+	github.com/streadway/amqp v1.1.0
 	github.com/stretchr/testify v1.3.0 // indirect
 	github.com/yuin/gopher-lua v0.0.0-20190206043414-8bfc7677f583
 	golang.org/x/crypto v0.0.0-20200128174031-69ecbb4d6d5d
