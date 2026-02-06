@@ -213,10 +213,11 @@ class TestSessionEndpoint:
         release_request = {"reason": "manual_release"}
         body = json.dumps(release_request)
         headers = generate_auth_headers(body)
+        headers["Content-Type"] = "application/json"
 
         response = await client.post(
             "/session/test-session-123/release",
-            json=release_request,
+            content=body,
             headers=headers,
         )
 

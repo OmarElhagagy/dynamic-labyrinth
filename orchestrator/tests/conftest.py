@@ -161,18 +161,28 @@ async def auth_client(
         # Make a dummy request to build middleware stack
         await ac.get("/")
 
-        # Ensure HMAC enforcement is ON
+        # Ensure HMAC enforcement is ON and debug mode is OFF
         hmac_mw = _get_hmac_middleware()
         original_enforce = None
+        original_debug = None
         if hmac_mw:
             original_enforce = hmac_mw.enforce
+            original_debug = hmac_mw.settings.debug
             hmac_mw.enforce = True
+            # Override debug to ensure HMAC is actually enforced
+            hmac_mw.settings = type(hmac_mw.settings)(
+                **{**hmac_mw.settings.model_dump(), "debug": False}
+            )
 
         yield ac
 
-        # Restore original enforce value
+        # Restore original values
         if hmac_mw and original_enforce is not None:
             hmac_mw.enforce = original_enforce
+            if original_debug is not None:
+                hmac_mw.settings = type(hmac_mw.settings)(
+                    **{**hmac_mw.settings.model_dump(), "debug": original_debug}
+                )
 
     app.dependency_overrides.clear()
 
