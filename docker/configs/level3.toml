@@ -18,19 +18,8 @@ type = "socket"
 output = "stdout"
 level = "debug"
 
-[[logging]]
-output = "/logs/honeytrap.log"
-level = "debug"
-
 # -----------------------------------------------------------------------------
-# Channel: File Pusher (for event logging)
-# -----------------------------------------------------------------------------
-[channel.file]
-type = "file"
-filename = "/logs/events.jsonl"
-
-# -----------------------------------------------------------------------------
-# Channel: Console
+# Channel: Console (for event logging to container logs)
 # -----------------------------------------------------------------------------
 [channel.console]
 type = "console"
@@ -105,7 +94,7 @@ type = "docker"
 # Filters
 # -----------------------------------------------------------------------------
 [[filter]]
-channel = ["file", "console"]
+channel = ["console"]
 
 # -----------------------------------------------------------------------------
 # Port Mappings

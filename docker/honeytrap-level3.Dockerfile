@@ -47,7 +47,7 @@ RUN apk --no-cache add \
     && update-ca-certificates
 
 # Create directories
-RUN mkdir -p /config /data /logs /sessions /pcap /snapshots
+RUN mkdir -p /config /data /sessions /pcap /snapshots
 
 # Copy binary from builder
 COPY --from=builder /go/bin/honeytrap /honeytrap/honeytrap
@@ -57,7 +57,7 @@ COPY docker/configs/level3.toml /config/config.toml
 
 # Create non-root user with additional capabilities
 RUN adduser -D -H -s /sbin/nologin honeytrap && \
-    chown -R honeytrap:honeytrap /config /data /logs /sessions /pcap /snapshots /honeytrap
+    chown -R honeytrap:honeytrap /config /data /sessions /pcap /snapshots /honeytrap
 
 # Note: Running as root for pcap capabilities in high-interaction mode
 # In production, use capabilities instead: setcap cap_net_raw+ep /honeytrap/honeytrap
@@ -82,7 +82,7 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
     CMD pidof honeytrap > /dev/null || exit 1
 
 # Volumes for persistent data
-VOLUME ["/data", "/logs", "/sessions", "/pcap", "/snapshots"]
+VOLUME ["/data", "/sessions", "/pcap", "/snapshots"]
 
 # Entry point
 ENTRYPOINT ["/honeytrap/honeytrap"]

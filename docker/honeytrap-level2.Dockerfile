@@ -45,7 +45,7 @@ RUN apk --no-cache add \
     && update-ca-certificates
 
 # Create directories
-RUN mkdir -p /config /data /logs /sessions
+RUN mkdir -p /config /data /sessions
 
 # Copy binary from builder
 COPY --from=builder /go/bin/honeytrap /honeytrap/honeytrap
@@ -55,7 +55,7 @@ COPY docker/configs/level2.toml /config/config.toml
 
 # Create non-root user
 RUN adduser -D -H -s /sbin/nologin honeytrap && \
-    chown -R honeytrap:honeytrap /config /data /logs /sessions /honeytrap
+    chown -R honeytrap:honeytrap /config /data /sessions /honeytrap
 
 USER honeytrap
 
@@ -75,7 +75,7 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
     CMD pidof honeytrap > /dev/null || exit 1
 
 # Volumes for persistent data
-VOLUME ["/data", "/logs", "/sessions"]
+VOLUME ["/data", "/sessions"]
 
 # Entry point
 ENTRYPOINT ["/honeytrap/honeytrap"]

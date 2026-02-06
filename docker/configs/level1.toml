@@ -16,21 +16,10 @@ type = "socket"
 # -----------------------------------------------------------------------------
 [[logging]]
 output = "stdout"
-level = "info"
-
-[[logging]]
-output = "/logs/honeytrap.log"
 level = "debug"
 
 # -----------------------------------------------------------------------------
-# Channel: File Pusher (for event logging)
-# -----------------------------------------------------------------------------
-[channel.file]
-type = "file"
-filename = "/logs/events.jsonl"
-
-# -----------------------------------------------------------------------------
-# Channel: Console (for debugging)
+# Channel: Console (for event logging to container logs)
 # -----------------------------------------------------------------------------
 [channel.console]
 type = "console"
@@ -57,7 +46,7 @@ type = "telnet"
 # Filters
 # -----------------------------------------------------------------------------
 [[filter]]
-channel = ["file", "console"]
+channel = ["console"]
 
 # -----------------------------------------------------------------------------
 # Port Mappings (new format - services are attached to ports)
