@@ -6,7 +6,7 @@
 # Use case: Initial attacker engagement and reconnaissance detection
 # =============================================================================
 
-FROM golang:1.21-alpine AS builder
+FROM golang:1.25-alpine AS builder
 
 # Build arguments
 ARG LDFLAGS=""
