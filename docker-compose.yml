@@ -165,10 +165,11 @@ services:
       backend:
         ipv4_address: 10.0.2.11
     healthcheck:
-      test: ["CMD", "curl", "-sf", "http://localhost:8080/health"]
+      test: ["CMD-SHELL", "pgrep honeytrap && nc -z localhost 22"]
       interval: 30s
       timeout: 5s
       retries: 3
+      start_period: 10s
     logging:
       driver: json-file
       options:
@@ -191,10 +192,11 @@ services:
       backend:
         ipv4_address: 10.0.2.12
     healthcheck:
-      test: ["CMD", "curl", "-sf", "http://localhost:8080/health"]
+      test: ["CMD-SHELL", "pgrep honeytrap && nc -z localhost 22"]
       interval: 30s
       timeout: 5s
       retries: 3
+      start_period: 10s
     logging:
       driver: json-file
       options:
@@ -217,10 +219,11 @@ services:
       backend:
         ipv4_address: 10.0.2.13
     healthcheck:
-      test: ["CMD", "curl", "-sf", "http://localhost:8080/health"]
+      test: ["CMD-SHELL", "pgrep honeytrap && nc -z localhost 22"]
       interval: 30s
       timeout: 5s
       retries: 3
+      start_period: 10s
     logging:
       driver: json-file
       options:
@@ -243,10 +246,11 @@ services:
       backend:
         ipv4_address: 10.0.2.14
     healthcheck:
-      test: ["CMD", "curl", "-sf", "http://localhost:8080/health"]
+      test: ["CMD-SHELL", "pgrep honeytrap && nc -z localhost 22"]
       interval: 30s
       timeout: 5s
       retries: 3
+      start_period: 10s
     logging:
       driver: json-file
       options:
@@ -269,10 +273,11 @@ services:
       backend:
         ipv4_address: 10.0.2.15
     healthcheck:
-      test: ["CMD", "curl", "-sf", "http://localhost:8080/health"]
+      test: ["CMD-SHELL", "pgrep honeytrap && nc -z localhost 22"]
       interval: 30s
       timeout: 5s
       retries: 3
+      start_period: 10s
     logging:
       driver: json-file
       options:
@@ -298,10 +303,11 @@ services:
       backend:
         ipv4_address: 10.0.2.21
     healthcheck:
-      test: ["CMD", "curl", "-sf", "http://localhost:8080/health"]
+      test: ["CMD-SHELL", "pgrep honeytrap && nc -z localhost 22"]
       interval: 30s
       timeout: 5s
       retries: 3
+      start_period: 10s
     logging:
       driver: json-file
       options:
@@ -324,10 +330,11 @@ services:
       backend:
         ipv4_address: 10.0.2.22
     healthcheck:
-      test: ["CMD", "curl", "-sf", "http://localhost:8080/health"]
+      test: ["CMD-SHELL", "pgrep honeytrap && nc -z localhost 22"]
       interval: 30s
       timeout: 5s
       retries: 3
+      start_period: 10s
     logging:
       driver: json-file
       options:
@@ -350,10 +357,11 @@ services:
       backend:
         ipv4_address: 10.0.2.23
     healthcheck:
-      test: ["CMD", "curl", "-sf", "http://localhost:8080/health"]
+      test: ["CMD-SHELL", "pgrep honeytrap && nc -z localhost 22"]
       interval: 30s
       timeout: 5s
       retries: 3
+      start_period: 10s
     logging:
       driver: json-file
       options:
@@ -383,10 +391,11 @@ services:
       - NET_RAW
       - NET_ADMIN
     healthcheck:
-      test: ["CMD", "curl", "-sf", "http://localhost:8080/health"]
+      test: ["CMD-SHELL", "pgrep honeytrap && nc -z localhost 22"]
       interval: 30s
       timeout: 5s
       retries: 3
+      start_period: 15s
     logging:
       driver: json-file
       options:

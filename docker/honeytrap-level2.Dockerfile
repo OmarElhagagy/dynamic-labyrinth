@@ -39,10 +39,11 @@ LABEL interaction="medium"
 
 # Install runtime dependencies
 RUN apk --no-cache add \
-    curl \
     ca-certificates \
     tzdata \
     busybox-extras \
+    netcat-openbsd \
+    procps \
     && update-ca-certificates
 
 # Create directories
@@ -69,11 +70,11 @@ ENV HONEYTRAP_LEVEL=2 \
 
 # Expose service ports
 # SSH: 22, HTTP: 80, Telnet: 23, FTP: 21, SMTP: 25, DNS: 53
-EXPOSE 21 22 23 25 53 80 8080
+EXPOSE 21 22 23 25 53 80
 
-# Health check
+# Health check - verify honeytrap process is running and port 22 is listening
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-    CMD curl -sf http://localhost:8080/health || exit 1
+    CMD pgrep honeytrap > /dev/null && nc -z localhost 22 || exit 1
 
 # Volumes for persistent data
 VOLUME ["/data", "/logs", "/sessions"]

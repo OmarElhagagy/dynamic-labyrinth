@@ -39,12 +39,13 @@ LABEL interaction="high"
 
 # Install runtime dependencies including pcap for packet capture
 RUN apk --no-cache add \
-    curl \
     ca-certificates \
     tzdata \
     busybox-extras \
     libpcap \
     tcpdump \
+    netcat-openbsd \
+    procps \
     && update-ca-certificates
 
 # Create directories
@@ -76,11 +77,11 @@ ENV HONEYTRAP_LEVEL=3 \
 # Expose all service ports
 # SSH: 22, HTTP: 80/443, Telnet: 23, FTP: 21, SMTP: 25, DNS: 53
 # VNC: 5900, Redis: 6379, Elasticsearch: 9200, Docker: 2375
-EXPOSE 21 22 23 25 53 80 443 2375 5900 6379 9200 8080
+EXPOSE 21 22 23 25 53 80 443 2375 5900 6379 9200
 
-# Health check
+# Health check - verify honeytrap process is running and port 22 is listening
 HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
-    CMD curl -sf http://localhost:8080/health || exit 1
+    CMD pgrep honeytrap > /dev/null && nc -z localhost 22 || exit 1
 
 # Volumes for persistent data
 VOLUME ["/data", "/logs", "/sessions", "/pcap", "/snapshots"]

@@ -39,9 +39,10 @@ LABEL interaction="low"
 
 # Install runtime dependencies
 RUN apk --no-cache add \
-    curl \
     ca-certificates \
     tzdata \
+    netcat-openbsd \
+    procps \
     && update-ca-certificates
 
 # Create directories
@@ -67,11 +68,11 @@ ENV HONEYTRAP_LEVEL=1 \
 
 # Expose service ports
 # SSH: 22, HTTP: 80, Telnet: 23
-EXPOSE 22 80 23 8080
+EXPOSE 22 80 23
 
-# Health check
+# Health check - verify honeytrap process is running and port 22 is listening
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-    CMD curl -sf http://localhost:8080/health || exit 1
+    CMD pgrep honeytrap > /dev/null && nc -z localhost 22 || exit 1
 
 # Volume for persistent data
 VOLUME ["/data", "/logs"]

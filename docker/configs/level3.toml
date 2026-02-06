@@ -1,4 +1,4 @@
-# =============================================================================
+﻿# =============================================================================
 # Dynamic Labyrinth - Honeytrap Level 3 Configuration
 # =============================================================================
 # High-interaction honeypot configuration
@@ -16,14 +16,6 @@ addresses = [
     "0.0.0.0:443", "0.0.0.0:2375", "0.0.0.0:5900",
     "0.0.0.0:6379", "0.0.0.0:9200"
 ]
-
-# -----------------------------------------------------------------------------
-# Web Interface (for health checks)
-# -----------------------------------------------------------------------------
-[web]
-enabled = true
-address = "0.0.0.0:8080"
-path = "/health"
 
 # -----------------------------------------------------------------------------
 # Logging Configuration
@@ -50,193 +42,120 @@ filename = "/logs/events.jsonl"
 type = "console"
 
 # -----------------------------------------------------------------------------
-# SSH Service - High Interaction
+# SSH Service - High Interaction (jail provides full shell simulation)
 # -----------------------------------------------------------------------------
-[service.ssh-high]
-type = "ssh"
-port = "tcp/22"
-banner = "SSH-2.0-OpenSSH_8.4p1 Debian-5+deb11u1"
-
-    # Extensive credential list for high-interaction
-    [[service.ssh-high.credentials]]
-    username = "root"
-    password = "root"
-
-    [[service.ssh-high.credentials]]
-    username = "root"
-    password = "toor"
-
-    [[service.ssh-high.credentials]]
-    username = "root"
-    password = "password"
-
-    [[service.ssh-high.credentials]]
-    username = "root"
-    password = "123456"
-
-    [[service.ssh-high.credentials]]
-    username = "admin"
-    password = "admin"
-
-    [[service.ssh-high.credentials]]
-    username = "admin"
-    password = "password"
-
-    [[service.ssh-high.credentials]]
-    username = "ubuntu"
-    password = "ubuntu"
-
-    [[service.ssh-high.credentials]]
-    username = "pi"
-    password = "raspberry"
-
-    [[service.ssh-high.credentials]]
-    username = "user"
-    password = "user"
-
-    [[service.ssh-high.credentials]]
-    username = "guest"
-    password = "guest"
-
-    [[service.ssh-high.credentials]]
-    username = "oracle"
-    password = "oracle"
-
-    [[service.ssh-high.credentials]]
-    username = "postgres"
-    password = "postgres"
+[service.ssh]
+type = "ssh-jail"
 
 # -----------------------------------------------------------------------------
 # HTTP Service - High Interaction
 # -----------------------------------------------------------------------------
-[service.http-high]
+[service.http]
 type = "http"
-port = "tcp/80"
-server = "Apache/2.4.51 (Debian)"
 
 # -----------------------------------------------------------------------------
 # HTTPS Service - High Interaction
 # -----------------------------------------------------------------------------
-[service.https-high]
+[service.https]
 type = "https"
-port = "tcp/443"
-server = "Apache/2.4.51 (Debian)"
 
 # -----------------------------------------------------------------------------
-# Telnet Service - High Interaction
+# Telnet Service - High Interaction (lua for scripted responses)
 # -----------------------------------------------------------------------------
-[service.telnet-high]
-type = "telnet"
-port = "tcp/23"
-banner = "Debian GNU/Linux 11\nKernel 5.10.0-10-amd64 on an x86_64\n\nlogin: "
+[service.telnet]
+type = "telnet-lua"
 
 # -----------------------------------------------------------------------------
 # FTP Service - High Interaction
 # -----------------------------------------------------------------------------
-[service.ftp-high]
+[service.ftp]
 type = "ftp"
-port = "tcp/21"
-banner = "220 vsftpd 3.0.3"
-allow_anonymous = true
 
 # -----------------------------------------------------------------------------
 # SMTP Service - High Interaction
 # -----------------------------------------------------------------------------
-[service.smtp-high]
+[service.smtp]
 type = "smtp"
-port = "tcp/25"
-banner = "220 smtp.company.local ESMTP Postfix"
-hostname = "smtp.company.local"
 
 # -----------------------------------------------------------------------------
 # DNS Service - High Interaction
 # -----------------------------------------------------------------------------
-[service.dns-high]
+[service.dns]
 type = "dns"
-port = "udp/53"
 
 # -----------------------------------------------------------------------------
 # VNC Service - High Interaction
 # -----------------------------------------------------------------------------
-[service.vnc-high]
+[service.vnc]
 type = "vnc"
-port = "tcp/5900"
 
 # -----------------------------------------------------------------------------
 # Redis Service - High Interaction
 # -----------------------------------------------------------------------------
-[service.redis-high]
+[service.redis]
 type = "redis"
-port = "tcp/6379"
 
 # -----------------------------------------------------------------------------
 # Elasticsearch Service - High Interaction
 # -----------------------------------------------------------------------------
-[service.elasticsearch-high]
+[service.elasticsearch]
 type = "elasticsearch"
-port = "tcp/9200"
 
 # -----------------------------------------------------------------------------
 # Docker API Service - High Interaction
 # -----------------------------------------------------------------------------
-[service.docker-high]
+[service.docker]
 type = "docker"
-port = "tcp/2375"
 
 # -----------------------------------------------------------------------------
 # Filters
 # -----------------------------------------------------------------------------
 [[filter]]
 channel = ["file", "console"]
-services = [
-    "ssh-high", "http-high", "https-high", "telnet-high", 
-    "ftp-high", "smtp-high", "dns-high", "vnc-high",
-    "redis-high", "elasticsearch-high", "docker-high"
-]
 
 # -----------------------------------------------------------------------------
 # Port Mappings
 # -----------------------------------------------------------------------------
 [[port]]
 port = "tcp/21"
-services = ["ftp-high"]
+services = ["ftp"]
 
 [[port]]
 port = "tcp/22"
-services = ["ssh-high"]
+services = ["ssh"]
 
 [[port]]
 port = "tcp/23"
-services = ["telnet-high"]
+services = ["telnet"]
 
 [[port]]
 port = "tcp/25"
-services = ["smtp-high"]
+services = ["smtp"]
 
 [[port]]
 port = "udp/53"
-services = ["dns-high"]
+services = ["dns"]
 
 [[port]]
 port = "tcp/80"
-services = ["http-high"]
+services = ["http"]
 
 [[port]]
 port = "tcp/443"
-services = ["https-high"]
+services = ["https"]
 
 [[port]]
 port = "tcp/2375"
-services = ["docker-high"]
+services = ["docker"]
 
 [[port]]
 port = "tcp/5900"
-services = ["vnc-high"]
+services = ["vnc"]
 
 [[port]]
 port = "tcp/6379"
-services = ["redis-high"]
+services = ["redis"]
 
 [[port]]
 port = "tcp/9200"
-services = ["elasticsearch-high"]
+services = ["elasticsearch"]
