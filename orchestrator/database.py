@@ -3,16 +3,22 @@ Database models and session management for the Orchestrator service.
 Uses SQLAlchemy async for SQLite persistence.
 """
 
+from collections.abc import AsyncGenerator
 from datetime import datetime
+from typing import cast
 
 from config import get_settings
 from models import ContainerState, SessionState
 from sqlalchemy import Boolean, Column, DateTime, Integer, String
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
-from sqlalchemy.orm import declarative_base
+from sqlalchemy.orm import DeclarativeBase
 from sqlalchemy.pool import StaticPool
 
-Base = declarative_base()
+
+class Base(DeclarativeBase):
+    """Base class for SQLAlchemy models."""
+
+    pass
 
 
 # =============================================================================
@@ -121,11 +127,12 @@ async def init_db(database_url: str | None = None) -> None:
         await conn.run_sync(Base.metadata.create_all)
 
 
-async def get_db_session() -> AsyncSession:
+async def get_db_session() -> AsyncGenerator[AsyncSession, None]:
     """Get an async database session."""
     if _async_session_factory is None:
         await init_db()
 
+    assert _async_session_factory is not None
     async with _async_session_factory() as session:
         try:
             yield session
@@ -155,7 +162,7 @@ async def get_session_by_id(db: AsyncSession, session_id: str) -> SessionModel |
     from sqlalchemy import select
 
     result = await db.execute(select(SessionModel).where(SessionModel.id == session_id))
-    return result.scalar_one_or_none()
+    return cast(SessionModel | None, result.scalar_one_or_none())
 
 
 async def get_container_by_id(db: AsyncSession, container_id: str) -> ContainerModel | None:
@@ -163,7 +170,7 @@ async def get_container_by_id(db: AsyncSession, container_id: str) -> ContainerM
     from sqlalchemy import select
 
     result = await db.execute(select(ContainerModel).where(ContainerModel.id == container_id))
-    return result.scalar_one_or_none()
+    return cast(ContainerModel | None, result.scalar_one_or_none())
 
 
 async def get_idle_containers_by_level(db: AsyncSession, level: int) -> list[ContainerModel]:

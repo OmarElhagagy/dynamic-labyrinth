@@ -255,7 +255,7 @@ class NginxWriter:
             # This is for development/testing scenarios
             return True
 
-    async def _run_command(self, command: str) -> subprocess.CompletedProcess:
+    async def _run_command(self, command: str) -> subprocess.CompletedProcess[str]:
         """Run a shell command asynchronously."""
         process = await asyncio.create_subprocess_shell(
             command, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE
@@ -264,7 +264,7 @@ class NginxWriter:
 
         return subprocess.CompletedProcess(
             args=command,
-            returncode=process.returncode,
+            returncode=process.returncode if process.returncode is not None else -1,
             stdout=stdout.decode() if stdout else "",
             stderr=stderr.decode() if stderr else "",
         )

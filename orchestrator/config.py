@@ -117,19 +117,22 @@ class PoolConfig:
         }
 
     @property
-    def pools(self) -> dict:
+    def pools(self) -> dict[str, dict]:
         """Get pool configurations."""
-        return self._config.get("pools", {})
+        result = self._config.get("pools", {})
+        return result if isinstance(result, dict) else {}
 
     @property
-    def network(self) -> dict:
+    def network(self) -> dict[str, str]:
         """Get network configuration."""
-        return self._config.get("network", {})
+        result = self._config.get("network", {})
+        return result if isinstance(result, dict) else {}
 
     @property
-    def defaults(self) -> dict:
+    def defaults(self) -> dict[str, int]:
         """Get default settings."""
-        return self._config.get("defaults", {})
+        result = self._config.get("defaults", {})
+        return result if isinstance(result, dict) else {}
 
     def get_pool(self, level: int) -> dict | None:
         """Get configuration for a specific pool level."""

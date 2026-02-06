@@ -421,7 +421,7 @@ async def get_session(
 @app.post("/session/{session_id}/release", tags=["Sessions"])
 async def release_session(
     session_id: str,
-    release_request: SessionReleaseRequest = None,
+    release_request: SessionReleaseRequest | None = None,
     db: AsyncSession = Depends(get_db),
     pm: PoolManager = Depends(get_pool_manager),
 ):
@@ -430,7 +430,9 @@ async def release_session(
 
     Returns the container to the idle pool and removes nginx mapping.
     """
-    reason = release_request.reason if release_request else "manual_release"
+    reason = (
+        release_request.reason if release_request and release_request.reason else "manual_release"
+    )
 
     # Release session
     success = await pm.release_session(db, session_id, reason)
