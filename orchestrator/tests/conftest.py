@@ -21,15 +21,15 @@ os.environ["DATABASE_URL"] = "sqlite+aiosqlite:///:memory:"
 
 # Clear the settings cache to ensure our env vars are picked up
 # This must be done before any imports that use get_settings()
-import config
+import config  # noqa: E402
 
 config.get_settings.cache_clear()
 
-from config import get_settings
-from database import Base
-from main import app, get_db, get_pool_manager
-from models import PoolStatus
-from pool_manager import PoolManager
+from config import get_settings  # noqa: E402
+from database import Base  # noqa: E402
+from main import app, get_db, get_pool_manager  # noqa: E402
+from models import PoolStatus  # noqa: E402
+from pool_manager import PoolManager  # noqa: E402
 
 settings = get_settings()
 
