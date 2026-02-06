@@ -165,7 +165,7 @@ services:
       backend:
         ipv4_address: 10.0.2.11
     healthcheck:
-      test: ["CMD-SHELL", "pidof honeytrap"]
+      test: ["CMD-SHELL", "test -f /proc/1/cmdline"]
       interval: 30s
       timeout: 5s
       retries: 3
@@ -193,7 +193,7 @@ services:
       backend:
         ipv4_address: 10.0.2.12
     healthcheck:
-      test: ["CMD-SHELL", "pidof honeytrap"]
+      test: ["CMD-SHELL", "test -f /proc/1/cmdline"]
       interval: 30s
       timeout: 5s
       retries: 3
@@ -221,7 +221,7 @@ services:
       backend:
         ipv4_address: 10.0.2.13
     healthcheck:
-      test: ["CMD-SHELL", "pidof honeytrap"]
+      test: ["CMD-SHELL", "test -f /proc/1/cmdline"]
       interval: 30s
       timeout: 5s
       retries: 3
@@ -249,7 +249,7 @@ services:
       backend:
         ipv4_address: 10.0.2.14
     healthcheck:
-      test: ["CMD-SHELL", "pidof honeytrap"]
+      test: ["CMD-SHELL", "test -f /proc/1/cmdline"]
       interval: 30s
       timeout: 5s
       retries: 3
@@ -277,7 +277,7 @@ services:
       backend:
         ipv4_address: 10.0.2.15
     healthcheck:
-      test: ["CMD-SHELL", "pidof honeytrap"]
+      test: ["CMD-SHELL", "test -f /proc/1/cmdline"]
       interval: 30s
       timeout: 5s
       retries: 3
@@ -308,7 +308,7 @@ services:
       backend:
         ipv4_address: 10.0.2.21
     healthcheck:
-      test: ["CMD-SHELL", "pidof honeytrap"]
+      test: ["CMD-SHELL", "test -f /proc/1/cmdline"]
       interval: 30s
       timeout: 5s
       retries: 3
@@ -336,7 +336,7 @@ services:
       backend:
         ipv4_address: 10.0.2.22
     healthcheck:
-      test: ["CMD-SHELL", "pidof honeytrap"]
+      test: ["CMD-SHELL", "test -f /proc/1/cmdline"]
       interval: 30s
       timeout: 5s
       retries: 3
@@ -364,7 +364,7 @@ services:
       backend:
         ipv4_address: 10.0.2.23
     healthcheck:
-      test: ["CMD-SHELL", "pidof honeytrap"]
+      test: ["CMD-SHELL", "test -f /proc/1/cmdline"]
       interval: 30s
       timeout: 5s
       retries: 3
@@ -398,7 +398,7 @@ services:
       - NET_RAW
       - NET_ADMIN
     healthcheck:
-      test: ["CMD-SHELL", "pidof honeytrap"]
+      test: ["CMD-SHELL", "test -f /proc/1/cmdline"]
       interval: 30s
       timeout: 5s
       retries: 3

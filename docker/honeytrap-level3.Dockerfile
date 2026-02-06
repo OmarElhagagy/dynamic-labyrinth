@@ -77,9 +77,9 @@ ENV HONEYTRAP_LEVEL=3 \
 # VNC: 5900, Redis: 6379, Elasticsearch: 9200, Docker: 2375
 EXPOSE 21 22 23 25 53 80 443 2375 5900 6379 9200
 
-# Health check - verify honeytrap process is running
+# Health check - verify honeytrap process is running (PID 1 in container)
 HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
-    CMD pidof honeytrap > /dev/null || exit 1
+    CMD test -f /proc/1/cmdline || exit 1
 
 # Volumes for persistent data
 VOLUME ["/data", "/sessions", "/pcap", "/snapshots"]

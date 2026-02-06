@@ -68,9 +68,9 @@ ENV HONEYTRAP_LEVEL=1 \
 # SSH: 22, HTTP: 80, Telnet: 23
 EXPOSE 22 80 23
 
-# Health check - verify honeytrap process is running
+# Health check - verify honeytrap process is running (PID 1 in container)
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-    CMD pidof honeytrap > /dev/null || exit 1
+    CMD test -f /proc/1/cmdline || exit 1
 
 # Volume for persistent data
 VOLUME ["/data"]
