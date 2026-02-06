@@ -4,8 +4,9 @@ Tests match the actual FastAPI endpoints and Pydantic models.
 """
 
 import pytest
-from conftest import generate_auth_headers
 from httpx import AsyncClient
+
+from .conftest import generate_auth_headers
 
 
 class TestRootEndpoint:
