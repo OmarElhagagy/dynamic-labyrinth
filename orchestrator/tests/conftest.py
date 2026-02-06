@@ -14,10 +14,11 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
 # Set test environment BEFORE importing app modules
+# Use ORCHESTRATOR_ prefix as defined in OrchestratorSettings.Config.env_prefix
 os.environ["ENVIRONMENT"] = "test"
-os.environ["DEBUG"] = "true"  # Disable HMAC enforcement
-os.environ["HMAC_SECRET"] = "test-secret-key-for-testing-only"
-os.environ["DATABASE_URL"] = "sqlite+aiosqlite:///:memory:"
+os.environ["ORCHESTRATOR_DEBUG"] = "true"  # Disable HMAC enforcement
+os.environ["ORCHESTRATOR_HMAC_SECRET"] = "test-secret-key-for-testing-only"
+os.environ["ORCHESTRATOR_DATABASE_URL"] = "sqlite+aiosqlite:///:memory:"
 
 # Clear the settings cache to ensure our env vars are picked up
 # This must be done before any imports that use get_settings()
