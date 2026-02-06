@@ -168,9 +168,7 @@ class TestNginxReload:
         writer = NginxWriter()
 
         # Mock health check to fail
-        with patch.object(
-            writer, "_nginx_health_check", new_callable=AsyncMock
-        ) as mock_health:
+        with patch.object(writer, "_nginx_health_check", new_callable=AsyncMock) as mock_health:
             mock_health.return_value = False
 
             result = await writer.reload_nginx()
