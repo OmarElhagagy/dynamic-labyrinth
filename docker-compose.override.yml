@@ -1,0 +1,56 @@
+# =============================================================================
+# Dynamic Labyrinth - Docker Compose Development Override
+# =============================================================================
+# Development-specific settings with debug enabled
+# Usage: docker-compose -f docker-compose.yml -f docker-compose.override.yml up
+# =============================================================================
+
+version: "3.9"
+
+services:
+
+  # ===========================================================================
+  # Orchestrator - Development Settings
+  # ===========================================================================
+  orchestrator:
+    environment:
+      - ORCHESTRATOR_DEBUG=true
+      - ORCHESTRATOR_LOG_LEVEL=DEBUG
+      - ORCHESTRATOR_HMAC_SECRET=dev-secret-not-for-production
+    ports:
+      - "8000:8000"  # Expose orchestrator directly in dev
+    volumes:
+      - ./orchestrator:/app:ro  # Mount source for hot reload
+    command: ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+
+  # ===========================================================================
+  # Nginx - Development Settings
+  # ===========================================================================
+  nginx:
+    volumes:
+      - ./docker/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./docker/nginx/conf.d:/etc/nginx/conf.d:ro
+
+  # ===========================================================================
+  # Reduce honeytrap instances for development
+  # ===========================================================================
+  # Only run 2 level1, 1 level2, 1 level3 in dev mode
+  honeytrap-level1-3:
+    profiles:
+      - full
+
+  honeytrap-level1-4:
+    profiles:
+      - full
+
+  honeytrap-level1-5:
+    profiles:
+      - full
+
+  honeytrap-level2-2:
+    profiles:
+      - full
+
+  honeytrap-level2-3:
+    profiles:
+      - full

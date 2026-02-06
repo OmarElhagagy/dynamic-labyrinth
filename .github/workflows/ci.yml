@@ -1,0 +1,277 @@
+# =============================================================================
+# Dynamic Labyrinth - Continuous Integration Workflow
+# =============================================================================
+# Runs on every push and pull request to validate code quality.
+# Includes linting, testing, and security scanning.
+
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+  pull_request:
+    branches: [main, develop]
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+
+env:
+  PYTHON_VERSION: "3.11"
+  GO_VERSION: "1.21"
+
+jobs:
+  # ==========================================================================
+  # Lint Python Code
+  # ==========================================================================
+  lint-python:
+    name: Lint Python
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install ruff mypy black isort
+          pip install -r orchestrator/requirements.txt
+
+      - name: Run Ruff (linting)
+        run: ruff check orchestrator/
+
+      - name: Run Black (formatting check)
+        run: black --check orchestrator/
+
+      - name: Run isort (import sorting)
+        run: isort --check-only orchestrator/
+
+      - name: Run MyPy (type checking)
+        run: mypy orchestrator/ --ignore-missing-imports
+
+  # ==========================================================================
+  # Lint Go Code
+  # ==========================================================================
+  lint-go:
+    name: Lint Go
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache-dependency-path: honeytrap/go.sum
+
+      - name: Run golangci-lint
+        uses: golangci/golangci-lint-action@v4
+        with:
+          version: latest
+          working-directory: honeytrap
+
+  # ==========================================================================
+  # Python Unit Tests
+  # ==========================================================================
+  test-python:
+    name: Test Python
+    runs-on: ubuntu-latest
+    needs: lint-python
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r orchestrator/requirements.txt
+          pip install pytest pytest-asyncio pytest-cov httpx
+
+      - name: Run tests with coverage
+        run: |
+          cd orchestrator
+          pytest tests/ -v --cov=. --cov-report=xml --cov-report=term-missing
+        env:
+          ENVIRONMENT: test
+          HMAC_SECRET: test-secret-key
+
+      - name: Upload coverage report
+        uses: codecov/codecov-action@v4
+        with:
+          files: orchestrator/coverage.xml
+          flags: orchestrator
+          fail_ci_if_error: false
+
+  # ==========================================================================
+  # Go Unit Tests
+  # ==========================================================================
+  test-go:
+    name: Test Go
+    runs-on: ubuntu-latest
+    needs: lint-go
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache-dependency-path: honeytrap/go.sum
+
+      - name: Run tests
+        run: |
+          cd honeytrap
+          go test -v -race -coverprofile=coverage.out ./...
+
+      - name: Upload coverage
+        uses: codecov/codecov-action@v4
+        with:
+          files: honeytrap/coverage.out
+          flags: honeytrap
+          fail_ci_if_error: false
+
+  # ==========================================================================
+  # Security Scanning
+  # ==========================================================================
+  security-scan:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          severity: 'CRITICAL,HIGH'
+          exit-code: '1'
+          ignore-unfixed: true
+
+      - name: Run Gitleaks (secret scanning)
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # ==========================================================================
+  # Docker Build Test
+  # ==========================================================================
+  docker-build:
+    name: Docker Build Test
+    runs-on: ubuntu-latest
+    needs: [test-python, test-go]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build orchestrator image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./orchestrator
+          file: ./orchestrator/Dockerfile
+          push: false
+          tags: orchestrator:test
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build honeytrap-level1 image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./docker/honeytrap-level1.Dockerfile
+          push: false
+          tags: honeytrap-level1:test
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build honeytrap-level2 image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./docker/honeytrap-level2.Dockerfile
+          push: false
+          tags: honeytrap-level2:test
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build honeytrap-level3 image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./docker/honeytrap-level3.Dockerfile
+          push: false
+          tags: honeytrap-level3:test
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # ==========================================================================
+  # Integration Tests
+  # ==========================================================================
+  integration-test:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    needs: docker-build
+    services:
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Start services with docker-compose
+        run: |
+          cp .env.example .env
+          docker-compose -f docker-compose.yml -f docker-compose.override.yml up -d --build
+        env:
+          HMAC_SECRET: integration-test-secret
+
+      - name: Wait for services to be healthy
+        run: |
+          timeout 120 bash -c 'until curl -sf http://localhost:8000/healthz; do sleep 5; done'
+          echo "Orchestrator is healthy"
+
+      - name: Run integration tests
+        run: |
+          # Test orchestrator health
+          curl -sf http://localhost:8000/healthz | jq .
+          
+          # Test pools endpoint
+          curl -sf http://localhost:8000/pools | jq .
+          
+          # Test metrics endpoint
+          curl -sf http://localhost:8000/metrics | head -20
+
+      - name: Collect logs on failure
+        if: failure()
+        run: |
+          docker-compose logs --tail=100
+
+      - name: Stop services
+        if: always()
+        run: docker-compose down -v

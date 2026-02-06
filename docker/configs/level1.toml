@@ -1,0 +1,104 @@
+# =============================================================================
+# Dynamic Labyrinth - Honeytrap Level 1 Configuration
+# =============================================================================
+# Low-interaction honeypot configuration
+# Services: SSH, HTTP, Telnet
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+# Listener Configuration
+# -----------------------------------------------------------------------------
+[listener]
+type = "socket"
+addresses = ["0.0.0.0:22", "0.0.0.0:23", "0.0.0.0:80"]
+
+# -----------------------------------------------------------------------------
+# Web Interface (for health checks)
+# -----------------------------------------------------------------------------
+[web]
+enabled = true
+address = "0.0.0.0:8080"
+path = "/health"
+
+# -----------------------------------------------------------------------------
+# Logging Configuration
+# -----------------------------------------------------------------------------
+[[logging]]
+output = "stdout"
+level = "info"
+
+[[logging]]
+output = "/logs/honeytrap.log"
+level = "debug"
+
+# -----------------------------------------------------------------------------
+# Channel: File Pusher (for event logging)
+# -----------------------------------------------------------------------------
+[channel.file]
+type = "file"
+filename = "/logs/events.jsonl"
+
+# -----------------------------------------------------------------------------
+# Channel: Console (for debugging)
+# -----------------------------------------------------------------------------
+[channel.console]
+type = "console"
+
+# -----------------------------------------------------------------------------
+# SSH Service - Low Interaction
+# -----------------------------------------------------------------------------
+[service.ssh-low]
+type = "ssh"
+port = "tcp/22"
+banner = "SSH-2.0-OpenSSH_7.4"
+
+    # Credentials to accept (for logging purposes)
+    [[service.ssh-low.credentials]]
+    username = "root"
+    password = "root"
+
+    [[service.ssh-low.credentials]]
+    username = "admin"
+    password = "admin"
+
+    [[service.ssh-low.credentials]]
+    username = "user"
+    password = "password"
+
+# -----------------------------------------------------------------------------
+# HTTP Service - Low Interaction
+# -----------------------------------------------------------------------------
+[service.http-low]
+type = "http"
+port = "tcp/80"
+server = "Apache/2.4.41 (Ubuntu)"
+
+# -----------------------------------------------------------------------------
+# Telnet Service - Low Interaction
+# -----------------------------------------------------------------------------
+[service.telnet-low]
+type = "telnet"
+port = "tcp/23"
+banner = "Ubuntu 18.04 LTS\nlogin: "
+
+# -----------------------------------------------------------------------------
+# Filters
+# -----------------------------------------------------------------------------
+[[filter]]
+channel = ["file", "console"]
+services = ["ssh-low", "http-low", "telnet-low"]
+
+# -----------------------------------------------------------------------------
+# Port Mappings
+# -----------------------------------------------------------------------------
+[[port]]
+port = "tcp/22"
+services = ["ssh-low"]
+
+[[port]]
+port = "tcp/23"
+services = ["telnet-low"]
+
+[[port]]
+port = "tcp/80"
+services = ["http-low"]

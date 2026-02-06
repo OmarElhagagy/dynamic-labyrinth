@@ -1,0 +1,94 @@
+%%{init: {'theme': 'base'}}%%
+flowchart TB
+    subgraph Internet["🌐 Internet"]
+        direction LR
+        ExtIP["External Traffic<br/>0.0.0.0/0"]
+    end
+
+    subgraph Firewall["🔥 Firewall"]
+        FW["iptables / nftables<br/>Allow: 80, 443, 22, 21, 23, 25, 3306"]
+    end
+
+    subgraph Frontend["Frontend Network<br/>10.0.1.0/24"]
+        direction TB
+        
+        subgraph NginxSvc["Nginx (10.0.1.2)"]
+            N80["Port 80"]
+            N443["Port 443"]
+            NStream["Stream Ports"]
+        end
+        
+        subgraph HoneypotPool["Honeypot Containers"]
+            L1Pool["Level 1<br/>10.0.1.10-19"]
+            L2Pool["Level 2<br/>10.0.1.20-29"]
+            L3Pool["Level 3<br/>10.0.1.30-39"]
+        end
+    end
+
+    subgraph Backend["Backend Network<br/>10.0.2.0/24"]
+        direction TB
+        Orch["Orchestrator<br/>10.0.2.10:8080"]
+        Cere["Cerebrum<br/>10.0.2.20:8000"]
+        Ingest["Ingestion<br/>10.0.2.30:9092"]
+    end
+
+    subgraph Management["Management Network<br/>10.0.3.0/24"]
+        direction TB
+        Dash["Dashboard<br/>10.0.3.10:3000"]
+        Prom["Prometheus<br/>10.0.3.20:9090"]
+        Graf["Grafana<br/>10.0.3.30:3000"]
+    end
+
+    subgraph Storage["Storage (Internal)"]
+        SQLite[(SQLite)]
+        ES[(Elasticsearch<br/>9200)]
+        Kafka[(Kafka<br/>9092)]
+    end
+
+    %% External connections
+    ExtIP --> FW
+    FW --> N80
+    FW --> N443
+    FW --> NStream
+
+    %% Frontend routing
+    NginxSvc --> L1Pool
+    NginxSvc --> L2Pool
+    NginxSvc --> L3Pool
+
+    %% Honeypot to Backend
+    L1Pool --> Orch
+    L2Pool --> Orch
+    L3Pool --> Orch
+    L1Pool --> Ingest
+    L2Pool --> Ingest
+    L3Pool --> Ingest
+
+    %% Backend connections
+    Orch <--> Cere
+    Orch --> SQLite
+    Orch -.-> NginxSvc
+    Ingest --> ES
+    Ingest --> Kafka
+
+    %% Management connections
+    Prom --> Orch
+    Prom --> NginxSvc
+    Graf --> Prom
+    Dash --> Orch
+    Dash --> ES
+
+    %% Styling
+    classDef internet fill:#ff9999,stroke:#cc0000
+    classDef firewall fill:#ffcc99,stroke:#cc6600
+    classDef frontend fill:#99ff99,stroke:#00cc00
+    classDef backend fill:#9999ff,stroke:#0000cc
+    classDef management fill:#ff99ff,stroke:#cc00cc
+    classDef storage fill:#99ffff,stroke:#00cccc
+
+    class ExtIP internet
+    class FW firewall
+    class N80,N443,NStream,L1Pool,L2Pool,L3Pool frontend
+    class Orch,Cere,Ingest backend
+    class Dash,Prom,Graf management
+    class SQLite,ES,Kafka storage

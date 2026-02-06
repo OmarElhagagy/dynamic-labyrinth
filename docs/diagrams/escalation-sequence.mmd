@@ -1,0 +1,54 @@
+sequenceDiagram
+    autonumber
+    
+    participant A as 👤 Attacker
+    participant N as 🔀 Nginx
+    participant L1 as 🍯 Level 1
+    participant O as ⚙️ Orchestrator
+    participant C as 🧠 Cerebrum
+    participant L2 as 🍯 Level 2
+    participant DB as 💾 Database
+
+    Note over A,DB: Phase 1: Initial Connection
+    
+    A->>+N: HTTP Request (no cookie)
+    N->>N: No dlsess cookie found
+    N->>+L1: Route to default upstream (L1)
+    L1->>L1: Process request
+    L1-->>-N: Response
+    N->>N: Generate session ID
+    N-->>-A: Response + Set-Cookie: dlsess=abc123
+
+    Note over A,DB: Phase 2: Activity Monitoring
+    
+    A->>N: More requests (with cookie)
+    N->>L1: Route to L1 (same container)
+    L1->>O: Event: suspicious activity detected
+    O->>DB: Log event
+    
+    Note over A,DB: Phase 3: Threat Analysis
+    
+    O->>+C: POST /analyze
+    Note right of C: Evaluate:<br/>- IP reputation<br/>- Behavior patterns<br/>- Command analysis
+    C-->>-O: {threat_score: 0.85, indicators: ["brute_force"]}
+    
+    Note over A,DB: Phase 4: Escalation Decision
+    
+    O->>O: Score > 0.7 → Escalate
+    O->>+L2: Reserve container
+    L2-->>-O: Container L2-abc ready
+    O->>DB: Update session mapping
+    O->>N: Update session_map.conf
+    N->>N: Reload configuration
+    O->>L1: Release container
+    
+    Note over A,DB: Phase 5: Seamless Transition
+    
+    A->>N: Next request (same cookie)
+    N->>N: Lookup dlsess=abc123 → L2
+    N->>+L2: Route to Level 2
+    L2->>L2: Higher fidelity interaction
+    L2-->>-N: Response
+    N-->>A: Response (attacker unaware of transition)
+
+    Note over A,DB: Session continues at Level 2...

@@ -1,0 +1,80 @@
+%%{init: {'theme': 'base', 'themeVariables': { 'primaryColor': '#4a90d9', 'primaryTextColor': '#fff', 'primaryBorderColor': '#2e5a8a', 'lineColor': '#666', 'secondaryColor': '#f4f4f4', 'tertiaryColor': '#fff'}}}%%
+flowchart TB
+    subgraph Internet["🌐 Internet"]
+        Attacker["👤 Attacker"]
+    end
+
+    subgraph Edge["Edge Layer"]
+        Nginx["🔀 Nginx Reverse Proxy<br/>HTTP/HTTPS + Stream"]
+    end
+
+    subgraph Honeypots["Honeypot Layer"]
+        subgraph L1["Level 1 Pool (5)"]
+            L1a["L1-a"]
+            L1b["L1-b"]
+            L1c["L1-c"]
+            L1d["L1-d"]
+            L1e["L1-e"]
+        end
+        subgraph L2["Level 2 Pool (3)"]
+            L2a["L2-a"]
+            L2b["L2-b"]
+            L2c["L2-c"]
+        end
+        subgraph L3["Level 3 Pool (1)"]
+            L3a["L3"]
+        end
+    end
+
+    subgraph Backend["Backend Layer"]
+        Orchestrator["⚙️ Orchestrator<br/>FastAPI"]
+        Cerebrum["🧠 Cerebrum<br/>ML Analysis"]
+        Ingestion["📥 Ingestion<br/>Event Pipeline"]
+    end
+
+    subgraph Storage["Storage Layer"]
+        DB[(SQLite)]
+        ES[(Elasticsearch)]
+        Kafka[(Kafka)]
+    end
+
+    subgraph Presentation["Presentation Layer"]
+        Dashboard["📊 Dashboard<br/>Real-time UI"]
+    end
+
+    Attacker --> Nginx
+    Nginx --> L1
+    Nginx --> L2
+    Nginx --> L3
+    
+    L1 --> Orchestrator
+    L2 --> Orchestrator
+    L3 --> Orchestrator
+    
+    Orchestrator <--> Cerebrum
+    Orchestrator --> DB
+    Orchestrator --> Nginx
+    
+    L1 --> Ingestion
+    L2 --> Ingestion
+    L3 --> Ingestion
+    
+    Ingestion --> ES
+    Ingestion --> Kafka
+    
+    ES --> Dashboard
+    Dashboard --> Orchestrator
+
+    classDef internet fill:#ffcccc,stroke:#ff0000
+    classDef edge fill:#ffffcc,stroke:#cccc00
+    classDef honeypot fill:#ccffcc,stroke:#00cc00
+    classDef backend fill:#ccccff,stroke:#0000cc
+    classDef storage fill:#ffccff,stroke:#cc00cc
+    classDef presentation fill:#ccffff,stroke:#00cccc
+
+    class Attacker internet
+    class Nginx edge
+    class L1a,L1b,L1c,L1d,L1e,L2a,L2b,L2c,L3a honeypot
+    class Orchestrator,Cerebrum,Ingestion backend
+    class DB,ES,Kafka storage
+    class Dashboard presentation

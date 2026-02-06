@@ -1,0 +1,628 @@
+openapi: 3.1.0
+info:
+  title: Dynamic Labyrinth Orchestrator API
+  description: |
+    API for the Dynamic Labyrinth honeypot orchestration system.
+    
+    ## Authentication
+    
+    All endpoints (except `/healthz`) require HMAC-SHA256 authentication via headers:
+    - `X-Signature`: HMAC-SHA256 signature of `{timestamp}:{request_body}`
+    - `X-Timestamp`: Unix timestamp (must be within 5 minutes of server time)
+    
+    ## Rate Limiting
+    
+    - Default: 100 requests per minute per IP
+    - Escalation endpoint: 50 requests per minute per IP
+    
+  version: 1.0.0
+  contact:
+    name: Dynamic Labyrinth Team
+    email: team@example.com
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: http://localhost:8080
+    description: Local development
+  - url: https://api.labyrinth.example.com
+    description: Production
+
+tags:
+  - name: Escalation
+    description: Session escalation and routing
+  - name: Sessions
+    description: Session management
+  - name: Pools
+    description: Container pool management
+  - name: Health
+    description: Health and metrics endpoints
+
+paths:
+  /escalate:
+    post:
+      tags:
+        - Escalation
+      summary: Request session escalation
+      description: |
+        Evaluates a session for escalation based on threat indicators and current level.
+        If escalation is approved, assigns a container from the target pool and updates
+        the nginx routing map.
+      operationId: escalateSession
+      security:
+        - hmacAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EscalationRequest'
+            examples:
+              escalate_to_level_2:
+                summary: Escalate session to level 2
+                value:
+                  session_id: "sess_abc123"
+                  action: "escalate_to_level_2"
+                  rule_id: "rule_brute_force_001"
+                  skill_score_after: 4.5
+                  explanation: "Detected brute force attack pattern"
+              escalate_to_level_3:
+                summary: Escalate session to level 3
+                value:
+                  session_id: "sess_xyz789"
+                  action: "escalate_to_level_3"
+                  rule_id: "rule_lateral_movement_003"
+                  skill_score_after: 8.2
+                  explanation: "Advanced lateral movement detected"
+              maintain:
+                summary: Maintain current level
+                value:
+                  session_id: "sess_def456"
+                  action: "maintain"
+                  rule_id: "rule_observation_001"
+                  skill_score_after: 2.5
+                  explanation: "Continuing observation"
+      responses:
+        '200':
+          description: Escalation decision returned
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EscalationDecision'
+              examples:
+                escalated:
+                  summary: Session escalated successfully
+                  value:
+                    ok: true
+                    session_id: "sess_abc123"
+                    container: "honeytrap-l2-abc123"
+                    target_level: 2
+                    note: "Escalated to level 2 container"
+                maintained:
+                  summary: Session maintained at current level
+                  value:
+                    ok: true
+                    session_id: "sess_abc123"
+                    container: "honeytrap-l1-abc123"
+                    target_level: 1
+                    note: "Maintained at current level"
+                released:
+                  summary: Session released
+                  value:
+                    ok: true
+                    session_id: "sess_abc123"
+                    container: null
+                    target_level: 0
+                    note: "Session released"
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '503':
+          description: No containers available in target pool
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: "pool_exhausted"
+                message: "No available containers in level2 pool"
+                retry_after: 30
+
+  /session/{session_id}:
+    get:
+      tags:
+        - Sessions
+      summary: Get session details
+      description: Retrieve detailed information about a specific session
+      operationId: getSession
+      security:
+        - hmacAuth: []
+      parameters:
+        - name: session_id
+          in: path
+          required: true
+          description: Unique session identifier
+          schema:
+            type: string
+            example: "sess_abc123"
+      responses:
+        '200':
+          description: Session details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SessionInfo'
+              example:
+                session_id: "sess_abc123"
+                current_level: 2
+                container_id: "honeytrap-l2-abc123"
+                container_address: "172.20.0.10:22"
+                state: "active"
+                skill_score: 4.5
+                created_at: "2026-02-06T10:30:00Z"
+                updated_at: "2026-02-06T10:45:00Z"
+                expires_at: "2026-02-06T11:30:00Z"
+                escalation_count: 1
+        '404':
+          description: Session not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: "not_found"
+                message: "Session sess_abc123 not found"
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    delete:
+      tags:
+        - Sessions
+      summary: Terminate session
+      description: |
+        Terminates a session and releases the associated container back to the pool.
+        The nginx routing map is updated to remove the session mapping.
+      operationId: terminateSession
+      security:
+        - hmacAuth: []
+      parameters:
+        - name: session_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Session terminated successfully
+        '404':
+          description: Session not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /pools:
+    get:
+      tags:
+        - Pools
+      summary: Get pool status
+      description: Returns current status of all container pools
+      operationId: getPoolStatus
+      security:
+        - hmacAuth: []
+      responses:
+        '200':
+          description: Pool status for all levels
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PoolStatusResponse'
+              example:
+                pools:
+                  - level: 1
+                    total: 5
+                    idle: 3
+                    assigned: 2
+                    unhealthy: 0
+                  - level: 2
+                    total: 3
+                    idle: 2
+                    assigned: 1
+                    unhealthy: 0
+                  - level: 3
+                    total: 1
+                    idle: 1
+                    assigned: 0
+                    unhealthy: 0
+                total_containers: 9
+                total_sessions: 3
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /pools/{level}/scale:
+    post:
+      tags:
+        - Pools
+      summary: Scale pool size
+      description: Adjust the number of containers in a pool
+      operationId: scalePool
+      security:
+        - hmacAuth: []
+      parameters:
+        - name: level
+          in: path
+          required: true
+          schema:
+            type: string
+            enum: [level1, level2, level3]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - target_size
+              properties:
+                target_size:
+                  type: integer
+                  minimum: 0
+                  maximum: 20
+                  description: Target number of containers
+            example:
+              target_size: 8
+      responses:
+        '202':
+          description: Scaling operation initiated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  current_size:
+                    type: integer
+                  target_size:
+                    type: integer
+              example:
+                message: "Scaling level1 pool from 5 to 8 containers"
+                current_size: 5
+                target_size: 8
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /healthz:
+    get:
+      tags:
+        - Health
+      summary: Health check
+      description: Returns service health status. Does not require authentication.
+      operationId: healthCheck
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+              example:
+                status: "healthy"
+                version: "1.0.0"
+                uptime: 3600
+                checks:
+                  database: "ok"
+                  docker: "ok"
+                  nginx: "ok"
+        '503':
+          description: Service is unhealthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+              example:
+                status: "unhealthy"
+                version: "1.0.0"
+                uptime: 3600
+                checks:
+                  database: "ok"
+                  docker: "error"
+                  nginx: "ok"
+
+  /metrics:
+    get:
+      tags:
+        - Health
+      summary: Prometheus metrics
+      description: Returns metrics in Prometheus exposition format
+      operationId: getMetrics
+      security:
+        - hmacAuth: []
+      responses:
+        '200':
+          description: Prometheus metrics
+          content:
+            text/plain:
+              schema:
+                type: string
+              example: |
+                # HELP orchestrator_requests_total Total request count
+                # TYPE orchestrator_requests_total counter
+                orchestrator_requests_total{method="POST",endpoint="/escalate",status="200"} 150
+                orchestrator_requests_total{method="GET",endpoint="/session",status="200"} 45
+                
+                # HELP orchestrator_request_latency_seconds Request latency in seconds
+                # TYPE orchestrator_request_latency_seconds histogram
+                orchestrator_request_latency_seconds_bucket{method="POST",endpoint="/escalate",le="0.1"} 120
+                
+                # HELP orchestrator_active_sessions Number of active sessions
+                # TYPE orchestrator_active_sessions gauge
+                orchestrator_active_sessions 12
+                
+                # HELP orchestrator_pool_containers Number of containers in pool
+                # TYPE orchestrator_pool_containers gauge
+                orchestrator_pool_containers{level="1",state="idle"} 3
+                orchestrator_pool_containers{level="2",state="assigned"} 1
+
+components:
+  securitySchemes:
+    hmacAuth:
+      type: apiKey
+      in: header
+      name: X-Signature
+      description: |
+        HMAC-SHA256 signature of `{X-Timestamp}:{request_body}`
+        
+        Required headers:
+        - `X-Signature`: The HMAC signature
+        - `X-Timestamp`: Unix timestamp (must be within 300 seconds of server time)
+
+  schemas:
+    EscalationRequest:
+      type: object
+      description: Escalation decision from Cerebrum to Orchestrator
+      required:
+        - session_id
+        - action
+        - rule_id
+        - skill_score_after
+        - explanation
+      properties:
+        session_id:
+          type: string
+          description: Unique session identifier
+          example: "sess_abc123"
+        action:
+          type: string
+          enum: [escalate_to_level_2, escalate_to_level_3, maintain, release]
+          description: |
+            - `escalate_to_level_2`: Move to level 2 honeypot
+            - `escalate_to_level_3`: Move to level 3 honeypot
+            - `maintain`: Keep at current level
+            - `release`: Release session
+          example: "escalate_to_level_2"
+        rule_id:
+          type: string
+          description: ID of the rule that triggered this decision
+          example: "rule-001"
+        skill_score_after:
+          type: integer
+          minimum: 0
+          maximum: 10
+          description: Updated attacker skill score (0-10)
+          example: 5
+        explanation:
+          type: string
+          description: Human-readable explanation for the decision
+          example: "Detected SSH brute force attack pattern"
+        timestamp:
+          type: string
+          format: date-time
+          description: Optional timestamp of the decision
+
+    EscalationDecision:
+      type: object
+      description: Response from Orchestrator for escalation request
+      required:
+        - ok
+        - session_id
+      properties:
+        ok:
+          type: boolean
+          description: Whether the operation was successful
+          example: true
+        session_id:
+          type: string
+          example: "sess_abc123"
+        container:
+          type: string
+          nullable: true
+          description: Assigned container identifier
+          example: "honeytrap-level2-1"
+        target_level:
+          type: integer
+          nullable: true
+          minimum: 1
+          maximum: 3
+          description: Target level after escalation
+          example: 2
+        note:
+          type: string
+          nullable: true
+          description: Additional information about the decision
+          example: "Escalated to level 2"
+
+    SessionInfo:
+      type: object
+      description: Session state information
+      properties:
+        session_id:
+          type: string
+        current_level:
+          type: integer
+          minimum: 1
+          maximum: 3
+        container_id:
+          type: string
+          nullable: true
+        container_address:
+          type: string
+          nullable: true
+          description: Container IP:port address
+        state:
+          type: string
+          enum: [active, released, expired]
+        skill_score:
+          type: integer
+          minimum: 0
+          maximum: 10
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        expires_at:
+          type: string
+          format: date-time
+          nullable: true
+        escalation_count:
+          type: integer
+          description: Number of times this session was escalated
+
+    PoolStatus:
+      type: object
+      description: Status of a single container pool
+      properties:
+        level:
+          type: integer
+          minimum: 1
+          maximum: 3
+          description: Pool level (1, 2, or 3)
+        total:
+          type: integer
+          description: Total containers in pool
+        idle:
+          type: integer
+          description: Containers ready to accept sessions
+        assigned:
+          type: integer
+          description: Containers currently handling sessions
+        unhealthy:
+          type: integer
+          description: Containers failing health checks
+
+    PoolStatusResponse:
+      type: object
+      description: Response from /pools endpoint
+      properties:
+        pools:
+          type: array
+          items:
+            $ref: '#/components/schemas/PoolStatus'
+        total_containers:
+          type: integer
+          description: Total containers across all pools
+        total_sessions:
+          type: integer
+          description: Total active sessions
+
+    HealthResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [healthy, unhealthy, degraded]
+        version:
+          type: string
+        uptime:
+          type: integer
+          description: Uptime in seconds
+        checks:
+          type: object
+          properties:
+            database:
+              type: string
+              enum: [ok, error]
+            docker:
+              type: string
+              enum: [ok, error]
+            nginx:
+              type: string
+              enum: [ok, error]
+
+    Error:
+      type: object
+      required:
+        - error
+        - message
+      properties:
+        error:
+          type: string
+          description: Error code
+        message:
+          type: string
+          description: Human-readable error message
+        details:
+          type: object
+          additionalProperties: true
+          description: Additional error details
+        retry_after:
+          type: integer
+          description: Seconds to wait before retrying (for rate limits)
+
+  responses:
+    BadRequest:
+      description: Invalid request
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: "validation_error"
+            message: "Invalid request body"
+            details:
+              field: "threat_score"
+              issue: "must be between 0.0 and 1.0"
+
+    Unauthorized:
+      description: Authentication failed
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          examples:
+            missing_signature:
+              summary: Missing signature header
+              value:
+                error: "unauthorized"
+                message: "Missing X-Signature header"
+            invalid_signature:
+              summary: Invalid signature
+              value:
+                error: "unauthorized"
+                message: "Invalid HMAC signature"
+            expired_timestamp:
+              summary: Expired timestamp
+              value:
+                error: "unauthorized"
+                message: "Timestamp expired (older than 300 seconds)"
+
+    RateLimited:
+      description: Rate limit exceeded
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: "rate_limited"
+            message: "Rate limit exceeded"
+            retry_after: 60

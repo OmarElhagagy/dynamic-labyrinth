@@ -1,0 +1,242 @@
+# =============================================================================
+# Dynamic Labyrinth - Honeytrap Level 3 Configuration
+# =============================================================================
+# High-interaction honeypot configuration
+# Services: SSH, HTTP/HTTPS, Telnet, FTP, SMTP, DNS, VNC, Redis, ES, Docker
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+# Listener Configuration
+# -----------------------------------------------------------------------------
+[listener]
+type = "socket"
+addresses = [
+    "0.0.0.0:21", "0.0.0.0:22", "0.0.0.0:23", 
+    "0.0.0.0:25", "0.0.0.0:53", "0.0.0.0:80",
+    "0.0.0.0:443", "0.0.0.0:2375", "0.0.0.0:5900",
+    "0.0.0.0:6379", "0.0.0.0:9200"
+]
+
+# -----------------------------------------------------------------------------
+# Web Interface (for health checks)
+# -----------------------------------------------------------------------------
+[web]
+enabled = true
+address = "0.0.0.0:8080"
+path = "/health"
+
+# -----------------------------------------------------------------------------
+# Logging Configuration
+# -----------------------------------------------------------------------------
+[[logging]]
+output = "stdout"
+level = "debug"
+
+[[logging]]
+output = "/logs/honeytrap.log"
+level = "debug"
+
+# -----------------------------------------------------------------------------
+# Channel: File Pusher (for event logging)
+# -----------------------------------------------------------------------------
+[channel.file]
+type = "file"
+filename = "/logs/events.jsonl"
+
+# -----------------------------------------------------------------------------
+# Channel: Console
+# -----------------------------------------------------------------------------
+[channel.console]
+type = "console"
+
+# -----------------------------------------------------------------------------
+# SSH Service - High Interaction
+# -----------------------------------------------------------------------------
+[service.ssh-high]
+type = "ssh"
+port = "tcp/22"
+banner = "SSH-2.0-OpenSSH_8.4p1 Debian-5+deb11u1"
+
+    # Extensive credential list for high-interaction
+    [[service.ssh-high.credentials]]
+    username = "root"
+    password = "root"
+
+    [[service.ssh-high.credentials]]
+    username = "root"
+    password = "toor"
+
+    [[service.ssh-high.credentials]]
+    username = "root"
+    password = "password"
+
+    [[service.ssh-high.credentials]]
+    username = "root"
+    password = "123456"
+
+    [[service.ssh-high.credentials]]
+    username = "admin"
+    password = "admin"
+
+    [[service.ssh-high.credentials]]
+    username = "admin"
+    password = "password"
+
+    [[service.ssh-high.credentials]]
+    username = "ubuntu"
+    password = "ubuntu"
+
+    [[service.ssh-high.credentials]]
+    username = "pi"
+    password = "raspberry"
+
+    [[service.ssh-high.credentials]]
+    username = "user"
+    password = "user"
+
+    [[service.ssh-high.credentials]]
+    username = "guest"
+    password = "guest"
+
+    [[service.ssh-high.credentials]]
+    username = "oracle"
+    password = "oracle"
+
+    [[service.ssh-high.credentials]]
+    username = "postgres"
+    password = "postgres"
+
+# -----------------------------------------------------------------------------
+# HTTP Service - High Interaction
+# -----------------------------------------------------------------------------
+[service.http-high]
+type = "http"
+port = "tcp/80"
+server = "Apache/2.4.51 (Debian)"
+
+# -----------------------------------------------------------------------------
+# HTTPS Service - High Interaction
+# -----------------------------------------------------------------------------
+[service.https-high]
+type = "https"
+port = "tcp/443"
+server = "Apache/2.4.51 (Debian)"
+
+# -----------------------------------------------------------------------------
+# Telnet Service - High Interaction
+# -----------------------------------------------------------------------------
+[service.telnet-high]
+type = "telnet"
+port = "tcp/23"
+banner = "Debian GNU/Linux 11\nKernel 5.10.0-10-amd64 on an x86_64\n\nlogin: "
+
+# -----------------------------------------------------------------------------
+# FTP Service - High Interaction
+# -----------------------------------------------------------------------------
+[service.ftp-high]
+type = "ftp"
+port = "tcp/21"
+banner = "220 vsftpd 3.0.3"
+allow_anonymous = true
+
+# -----------------------------------------------------------------------------
+# SMTP Service - High Interaction
+# -----------------------------------------------------------------------------
+[service.smtp-high]
+type = "smtp"
+port = "tcp/25"
+banner = "220 smtp.company.local ESMTP Postfix"
+hostname = "smtp.company.local"
+
+# -----------------------------------------------------------------------------
+# DNS Service - High Interaction
+# -----------------------------------------------------------------------------
+[service.dns-high]
+type = "dns"
+port = "udp/53"
+
+# -----------------------------------------------------------------------------
+# VNC Service - High Interaction
+# -----------------------------------------------------------------------------
+[service.vnc-high]
+type = "vnc"
+port = "tcp/5900"
+
+# -----------------------------------------------------------------------------
+# Redis Service - High Interaction
+# -----------------------------------------------------------------------------
+[service.redis-high]
+type = "redis"
+port = "tcp/6379"
+
+# -----------------------------------------------------------------------------
+# Elasticsearch Service - High Interaction
+# -----------------------------------------------------------------------------
+[service.elasticsearch-high]
+type = "elasticsearch"
+port = "tcp/9200"
+
+# -----------------------------------------------------------------------------
+# Docker API Service - High Interaction
+# -----------------------------------------------------------------------------
+[service.docker-high]
+type = "docker"
+port = "tcp/2375"
+
+# -----------------------------------------------------------------------------
+# Filters
+# -----------------------------------------------------------------------------
+[[filter]]
+channel = ["file", "console"]
+services = [
+    "ssh-high", "http-high", "https-high", "telnet-high", 
+    "ftp-high", "smtp-high", "dns-high", "vnc-high",
+    "redis-high", "elasticsearch-high", "docker-high"
+]
+
+# -----------------------------------------------------------------------------
+# Port Mappings
+# -----------------------------------------------------------------------------
+[[port]]
+port = "tcp/21"
+services = ["ftp-high"]
+
+[[port]]
+port = "tcp/22"
+services = ["ssh-high"]
+
+[[port]]
+port = "tcp/23"
+services = ["telnet-high"]
+
+[[port]]
+port = "tcp/25"
+services = ["smtp-high"]
+
+[[port]]
+port = "udp/53"
+services = ["dns-high"]
+
+[[port]]
+port = "tcp/80"
+services = ["http-high"]
+
+[[port]]
+port = "tcp/443"
+services = ["https-high"]
+
+[[port]]
+port = "tcp/2375"
+services = ["docker-high"]
+
+[[port]]
+port = "tcp/5900"
+services = ["vnc-high"]
+
+[[port]]
+port = "tcp/6379"
+services = ["redis-high"]
+
+[[port]]
+port = "tcp/9200"
+services = ["elasticsearch-high"]

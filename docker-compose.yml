@@ -1,0 +1,398 @@
+# =============================================================================
+# Dynamic Labyrinth - Docker Compose Configuration
+# =============================================================================
+# Production-ready deployment with:
+# - 5× Level 1 (low) honeytrap containers
+# - 3× Level 2 (medium) honeytrap containers  
+# - 1× Level 3 (high) honeytrap container
+# - Orchestrator service
+# - Nginx reverse proxy
+# - Supporting services
+# =============================================================================
+
+version: "3.9"
+
+# =============================================================================
+# Networks
+# =============================================================================
+networks:
+  # Frontend network (exposed to attackers)
+  frontend:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 10.0.1.0/24
+          gateway: 10.0.1.1
+  
+  # Backend network (internal services)
+  backend:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 10.0.2.0/24
+          gateway: 10.0.2.1
+  
+  # Management network (orchestrator, dashboard)
+  management:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 10.0.3.0/24
+          gateway: 10.0.3.1
+
+# =============================================================================
+# Volumes
+# =============================================================================
+volumes:
+  orchestrator_data:
+  nginx_maps:
+  honeytrap_logs:
+  honeytrap_data:
+
+# =============================================================================
+# Services
+# =============================================================================
+services:
+
+  # ===========================================================================
+  # Nginx Reverse Proxy
+  # ===========================================================================
+  nginx:
+    build:
+      context: .
+      dockerfile: docker/nginx/Dockerfile
+    container_name: nginx
+    restart: unless-stopped
+    ports:
+      # HTTP (honeytrap routing)
+      - "80:80"
+      - "443:443"
+      # Internal API gateway
+      - "8080:8080"
+      # Dashboard
+      - "3000:3000"
+      # Stream proxies
+      - "2222:2222"   # SSH
+      - "2323:2323"   # Telnet
+      - "2121:2121"   # FTP
+      - "2525:2525"   # SMTP
+      - "5353:5353/udp"  # DNS
+      - "5901:5901"   # VNC
+      - "6380:6380"   # Redis
+      - "9201:9201"   # Elasticsearch
+      - "2376:2376"   # Docker API
+    volumes:
+      - nginx_maps:/etc/nginx/maps:rw
+      - ./docker/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./docker/nginx/conf.d:/etc/nginx/conf.d:ro
+    networks:
+      - frontend
+      - backend
+      - management
+    depends_on:
+      - orchestrator
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ===========================================================================
+  # Orchestrator Service
+  # ===========================================================================
+  orchestrator:
+    build:
+      context: .
+      dockerfile: orchestrator/Dockerfile
+    container_name: orchestrator
+    restart: unless-stopped
+    environment:
+      - ORCHESTRATOR_DEBUG=false
+      - ORCHESTRATOR_DATABASE_URL=sqlite+aiosqlite:///./data/orchestrator.db
+      - ORCHESTRATOR_NGINX_MAP_PATH=/nginx_maps/honeytrap_upstream.map
+      - ORCHESTRATOR_HMAC_SECRET=${HMAC_SECRET:-change-me-in-production}
+      - ORCHESTRATOR_LOG_LEVEL=INFO
+    volumes:
+      - orchestrator_data:/app/data
+      - nginx_maps:/nginx_maps:rw
+      - ./orchestrator/pools.yaml:/app/pools.yaml:ro
+    networks:
+      backend:
+        ipv4_address: 10.0.2.100
+      management:
+    depends_on:
+      honeytrap-level1-1:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:8000/healthz"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ===========================================================================
+  # Level 1 Honeytrap Containers (Low Interaction) - 5 instances
+  # ===========================================================================
+  honeytrap-level1-1:
+    build:
+      context: .
+      dockerfile: docker/honeytrap-level1.Dockerfile
+    container_name: honeytrap-level1-1
+    restart: unless-stopped
+    environment:
+      - HONEYTRAP_LEVEL=1
+      - HONEYTRAP_INSTANCE=1
+    volumes:
+      - honeytrap_logs:/logs
+      - honeytrap_data:/data
+    networks:
+      backend:
+        ipv4_address: 10.0.2.11
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    logging:
+      driver: json-file
+      options:
+        max-size: "5m"
+        max-file: "2"
+
+  honeytrap-level1-2:
+    build:
+      context: .
+      dockerfile: docker/honeytrap-level1.Dockerfile
+    container_name: honeytrap-level1-2
+    restart: unless-stopped
+    environment:
+      - HONEYTRAP_LEVEL=1
+      - HONEYTRAP_INSTANCE=2
+    volumes:
+      - honeytrap_logs:/logs
+      - honeytrap_data:/data
+    networks:
+      backend:
+        ipv4_address: 10.0.2.12
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    logging:
+      driver: json-file
+      options:
+        max-size: "5m"
+        max-file: "2"
+
+  honeytrap-level1-3:
+    build:
+      context: .
+      dockerfile: docker/honeytrap-level1.Dockerfile
+    container_name: honeytrap-level1-3
+    restart: unless-stopped
+    environment:
+      - HONEYTRAP_LEVEL=1
+      - HONEYTRAP_INSTANCE=3
+    volumes:
+      - honeytrap_logs:/logs
+      - honeytrap_data:/data
+    networks:
+      backend:
+        ipv4_address: 10.0.2.13
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    logging:
+      driver: json-file
+      options:
+        max-size: "5m"
+        max-file: "2"
+
+  honeytrap-level1-4:
+    build:
+      context: .
+      dockerfile: docker/honeytrap-level1.Dockerfile
+    container_name: honeytrap-level1-4
+    restart: unless-stopped
+    environment:
+      - HONEYTRAP_LEVEL=1
+      - HONEYTRAP_INSTANCE=4
+    volumes:
+      - honeytrap_logs:/logs
+      - honeytrap_data:/data
+    networks:
+      backend:
+        ipv4_address: 10.0.2.14
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    logging:
+      driver: json-file
+      options:
+        max-size: "5m"
+        max-file: "2"
+
+  honeytrap-level1-5:
+    build:
+      context: .
+      dockerfile: docker/honeytrap-level1.Dockerfile
+    container_name: honeytrap-level1-5
+    restart: unless-stopped
+    environment:
+      - HONEYTRAP_LEVEL=1
+      - HONEYTRAP_INSTANCE=5
+    volumes:
+      - honeytrap_logs:/logs
+      - honeytrap_data:/data
+    networks:
+      backend:
+        ipv4_address: 10.0.2.15
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    logging:
+      driver: json-file
+      options:
+        max-size: "5m"
+        max-file: "2"
+
+  # ===========================================================================
+  # Level 2 Honeytrap Containers (Medium Interaction) - 3 instances
+  # ===========================================================================
+  honeytrap-level2-1:
+    build:
+      context: .
+      dockerfile: docker/honeytrap-level2.Dockerfile
+    container_name: honeytrap-level2-1
+    restart: unless-stopped
+    environment:
+      - HONEYTRAP_LEVEL=2
+      - HONEYTRAP_INSTANCE=1
+    volumes:
+      - honeytrap_logs:/logs
+      - honeytrap_data:/data
+    networks:
+      backend:
+        ipv4_address: 10.0.2.21
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  honeytrap-level2-2:
+    build:
+      context: .
+      dockerfile: docker/honeytrap-level2.Dockerfile
+    container_name: honeytrap-level2-2
+    restart: unless-stopped
+    environment:
+      - HONEYTRAP_LEVEL=2
+      - HONEYTRAP_INSTANCE=2
+    volumes:
+      - honeytrap_logs:/logs
+      - honeytrap_data:/data
+    networks:
+      backend:
+        ipv4_address: 10.0.2.22
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  honeytrap-level2-3:
+    build:
+      context: .
+      dockerfile: docker/honeytrap-level2.Dockerfile
+    container_name: honeytrap-level2-3
+    restart: unless-stopped
+    environment:
+      - HONEYTRAP_LEVEL=2
+      - HONEYTRAP_INSTANCE=3
+    volumes:
+      - honeytrap_logs:/logs
+      - honeytrap_data:/data
+    networks:
+      backend:
+        ipv4_address: 10.0.2.23
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ===========================================================================
+  # Level 3 Honeytrap Container (High Interaction) - 1 instance
+  # ===========================================================================
+  honeytrap-level3-1:
+    build:
+      context: .
+      dockerfile: docker/honeytrap-level3.Dockerfile
+    container_name: honeytrap-level3-1
+    restart: unless-stopped
+    environment:
+      - HONEYTRAP_LEVEL=3
+      - HONEYTRAP_INSTANCE=1
+    volumes:
+      - honeytrap_logs:/logs
+      - honeytrap_data:/data
+    networks:
+      backend:
+        ipv4_address: 10.0.2.31
+    # Additional capabilities for high-interaction mode
+    cap_add:
+      - NET_RAW
+      - NET_ADMIN
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    logging:
+      driver: json-file
+      options:
+        max-size: "20m"
+        max-file: "5"
+
+# =============================================================================
+# Extension Fields (for reuse)
+# =============================================================================
+x-honeytrap-common: &honeytrap-common
+  restart: unless-stopped
+  logging:
+    driver: json-file
+    options:
+      max-size: "10m"
+      max-file: "3"

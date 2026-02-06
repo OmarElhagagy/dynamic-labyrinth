@@ -1,0 +1,157 @@
+# =============================================================================
+# Dynamic Labyrinth - Honeytrap Level 2 Configuration
+# =============================================================================
+# Medium-interaction honeypot configuration
+# Services: SSH, HTTP, Telnet, FTP, SMTP, DNS
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+# Listener Configuration
+# -----------------------------------------------------------------------------
+[listener]
+type = "socket"
+addresses = ["0.0.0.0:21", "0.0.0.0:22", "0.0.0.0:23", "0.0.0.0:25", "0.0.0.0:53", "0.0.0.0:80"]
+
+# -----------------------------------------------------------------------------
+# Web Interface (for health checks)
+# -----------------------------------------------------------------------------
+[web]
+enabled = true
+address = "0.0.0.0:8080"
+path = "/health"
+
+# -----------------------------------------------------------------------------
+# Logging Configuration
+# -----------------------------------------------------------------------------
+[[logging]]
+output = "stdout"
+level = "info"
+
+[[logging]]
+output = "/logs/honeytrap.log"
+level = "debug"
+
+# -----------------------------------------------------------------------------
+# Channel: File Pusher (for event logging)
+# -----------------------------------------------------------------------------
+[channel.file]
+type = "file"
+filename = "/logs/events.jsonl"
+
+# -----------------------------------------------------------------------------
+# Channel: Console
+# -----------------------------------------------------------------------------
+[channel.console]
+type = "console"
+
+# -----------------------------------------------------------------------------
+# SSH Service - Medium Interaction
+# -----------------------------------------------------------------------------
+[service.ssh-medium]
+type = "ssh"
+port = "tcp/22"
+banner = "SSH-2.0-OpenSSH_8.2p1 Ubuntu-4ubuntu0.5"
+
+    # More realistic credential list
+    [[service.ssh-medium.credentials]]
+    username = "root"
+    password = "root"
+
+    [[service.ssh-medium.credentials]]
+    username = "root"
+    password = "toor"
+
+    [[service.ssh-medium.credentials]]
+    username = "admin"
+    password = "admin"
+
+    [[service.ssh-medium.credentials]]
+    username = "admin"
+    password = "password123"
+
+    [[service.ssh-medium.credentials]]
+    username = "ubuntu"
+    password = "ubuntu"
+
+    [[service.ssh-medium.credentials]]
+    username = "pi"
+    password = "raspberry"
+
+    [[service.ssh-medium.credentials]]
+    username = "test"
+    password = "test"
+
+# -----------------------------------------------------------------------------
+# HTTP Service - Medium Interaction
+# -----------------------------------------------------------------------------
+[service.http-medium]
+type = "http"
+port = "tcp/80"
+server = "nginx/1.18.0 (Ubuntu)"
+
+# -----------------------------------------------------------------------------
+# Telnet Service - Medium Interaction
+# -----------------------------------------------------------------------------
+[service.telnet-medium]
+type = "telnet"
+port = "tcp/23"
+banner = "Ubuntu 20.04.3 LTS\nKernel 5.4.0-91-generic on an x86_64\n\nlogin: "
+
+# -----------------------------------------------------------------------------
+# FTP Service - Medium Interaction
+# -----------------------------------------------------------------------------
+[service.ftp-medium]
+type = "ftp"
+port = "tcp/21"
+banner = "220 ProFTPD 1.3.5e Server (Debian)"
+allow_anonymous = true
+
+# -----------------------------------------------------------------------------
+# SMTP Service - Medium Interaction
+# -----------------------------------------------------------------------------
+[service.smtp-medium]
+type = "smtp"
+port = "tcp/25"
+banner = "220 mail.example.com ESMTP Postfix (Ubuntu)"
+hostname = "mail.example.com"
+
+# -----------------------------------------------------------------------------
+# DNS Service - Medium Interaction
+# -----------------------------------------------------------------------------
+[service.dns-medium]
+type = "dns"
+port = "udp/53"
+
+# -----------------------------------------------------------------------------
+# Filters
+# -----------------------------------------------------------------------------
+[[filter]]
+channel = ["file", "console"]
+services = ["ssh-medium", "http-medium", "telnet-medium", "ftp-medium", "smtp-medium", "dns-medium"]
+
+# -----------------------------------------------------------------------------
+# Port Mappings
+# -----------------------------------------------------------------------------
+[[port]]
+port = "tcp/21"
+services = ["ftp-medium"]
+
+[[port]]
+port = "tcp/22"
+services = ["ssh-medium"]
+
+[[port]]
+port = "tcp/23"
+services = ["telnet-medium"]
+
+[[port]]
+port = "tcp/25"
+services = ["smtp-medium"]
+
+[[port]]
+port = "udp/53"
+services = ["dns-medium"]
+
+[[port]]
+port = "tcp/80"
+services = ["http-medium"]

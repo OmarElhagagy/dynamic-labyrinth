@@ -1,0 +1,130 @@
+# =============================================================================
+# Dynamic Labyrinth - Container Pool Configuration
+# =============================================================================
+# This file defines the honeytrap container pools and their configurations.
+# Modify counts, ports, and services based on deployment requirements.
+
+pools:
+  # -------------------------------------------------------------------------
+  # Level 1: Low Interaction Honeypots
+  # -------------------------------------------------------------------------
+  # These containers provide basic service emulation with minimal interaction.
+  # Used for initial attacker engagement and reconnaissance detection.
+  level1:
+    count: 5
+    interaction: low
+    base_port: 8081
+    container_prefix: honeytrap-level1
+    services:
+      - ssh
+      - http
+      - telnet
+    resources:
+      memory: 256M
+      cpu: 0.25
+    config:
+      max_connections: 100
+      log_level: info
+
+  # -------------------------------------------------------------------------
+  # Level 2: Medium Interaction Honeypots
+  # -------------------------------------------------------------------------
+  # These containers provide deeper service emulation with realistic responses.
+  # Used for attackers showing skill and persistence.
+  level2:
+    count: 3
+    interaction: medium
+    base_port: 8091
+    container_prefix: honeytrap-level2
+    services:
+      - ssh
+      - http
+      - telnet
+      - ftp
+      - smtp
+      - dns
+    resources:
+      memory: 512M
+      cpu: 0.5
+    config:
+      max_connections: 50
+      log_level: debug
+      record_sessions: true
+
+  # -------------------------------------------------------------------------
+  # Level 3: High Interaction Honeypots
+  # -------------------------------------------------------------------------
+  # These containers provide full service emulation with maximum interaction.
+  # Used for sophisticated attackers requiring detailed analysis.
+  level3:
+    count: 1
+    interaction: high
+    base_port: 8101
+    container_prefix: honeytrap-level3
+    services:
+      - ssh
+      - http
+      - telnet
+      - ftp
+      - smtp
+      - dns
+      - vnc
+      - redis
+      - elasticsearch
+      - docker
+    resources:
+      memory: 1G
+      cpu: 1.0
+    config:
+      max_connections: 20
+      log_level: debug
+      record_sessions: true
+      record_pcap: true
+      filesystem_snapshot: true
+
+# =============================================================================
+# Network Configuration
+# =============================================================================
+network:
+  subnet: 10.0.2.0/24
+  gateway: 10.0.2.1
+  dns: 10.0.2.1
+  
+  # Port mappings for external access (if needed)
+  external_ports:
+    ssh: 2222
+    http: 8080
+    https: 8443
+
+# =============================================================================
+# Default Settings
+# =============================================================================
+defaults:
+  # Health check configuration
+  health_check_path: /health
+  health_check_interval: 30
+  health_check_timeout: 5
+  health_check_retries: 3
+  
+  # Container lifecycle
+  drain_timeout: 60
+  startup_timeout: 30
+  shutdown_timeout: 10
+  
+  # Session handling
+  session_idle_timeout: 300
+  max_sessions_per_container: 10
+
+# =============================================================================
+# Upstream Pool Definitions (for nginx)
+# =============================================================================
+upstreams:
+  level1_pool:
+    method: round_robin
+    health_check: true
+  level2_pool:
+    method: least_conn
+    health_check: true
+  level3_pool:
+    method: ip_hash
+    health_check: true

@@ -1,0 +1,91 @@
+%%{init: {'theme': 'base'}}%%
+flowchart LR
+    subgraph Sources["Data Sources"]
+        direction TB
+        A["👤 Attacker<br/>Connections"]
+        HP["🍯 Honeypots<br/>Events"]
+        SYS["📊 System<br/>Metrics"]
+    end
+
+    subgraph Collection["Collection Layer"]
+        direction TB
+        N["Nginx<br/>Access Logs"]
+        E["Event<br/>Collector"]
+        P["Prometheus<br/>Scraper"]
+    end
+
+    subgraph Processing["Processing Layer"]
+        direction TB
+        I["Ingestion<br/>Service"]
+        O["Orchestrator"]
+        C["Cerebrum<br/>ML Engine"]
+    end
+
+    subgraph Storage["Storage Layer"]
+        direction TB
+        ES[(Elasticsearch)]
+        K[(Kafka)]
+        DB[(SQLite)]
+        TS[(Prometheus<br/>TSDB)]
+    end
+
+    subgraph Analytics["Analytics Layer"]
+        direction TB
+        D["Dashboard"]
+        G["Grafana"]
+        AL["Alertmanager"]
+    end
+
+    subgraph Outputs["Outputs"]
+        direction TB
+        VIS["📈 Visualizations"]
+        ALERT["🚨 Alerts"]
+        REPORT["📄 Reports"]
+        TI["🔍 Threat Intel"]
+    end
+
+    %% Source flows
+    A --> N
+    HP --> E
+    SYS --> P
+
+    %% Collection to Processing
+    N --> I
+    E --> I
+    E --> O
+    P --> TS
+
+    %% Processing
+    O <--> C
+    O --> DB
+    I --> K
+    I --> ES
+
+    %% Storage to Analytics
+    ES --> D
+    K --> D
+    DB --> O
+    TS --> G
+    TS --> AL
+
+    %% Analytics to Outputs
+    D --> VIS
+    D --> REPORT
+    G --> VIS
+    AL --> ALERT
+    C --> TI
+
+    %% Styling
+    classDef source fill:#ffcccc,stroke:#cc0000
+    classDef collect fill:#ffffcc,stroke:#cccc00
+    classDef process fill:#ccffcc,stroke:#00cc00
+    classDef store fill:#ccccff,stroke:#0000cc
+    classDef analyze fill:#ffccff,stroke:#cc00cc
+    classDef output fill:#ccffff,stroke:#00cccc
+
+    class A,HP,SYS source
+    class N,E,P collect
+    class I,O,C process
+    class ES,K,DB,TS store
+    class D,G,AL analyze
+    class VIS,ALERT,REPORT,TI output

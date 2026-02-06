@@ -1,0 +1,335 @@
+# =============================================================================
+# Dynamic Labyrinth - Deployment Workflow
+# =============================================================================
+# Deploys to staging or production environments.
+
+name: Deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Deployment environment'
+        required: true
+        default: 'staging'
+        type: choice
+        options:
+          - staging
+          - production
+      version:
+        description: 'Version to deploy (tag or sha)'
+        required: true
+        default: 'latest'
+
+  # Auto-deploy to staging on main branch push
+  push:
+    branches: [main]
+    paths:
+      - 'orchestrator/**'
+      - 'honeytrap/**'
+      - 'docker/**'
+      - 'docker-compose*.yml'
+
+concurrency:
+  group: deploy-${{ github.event.inputs.environment || 'staging' }}
+  cancel-in-progress: false
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_PREFIX: ${{ github.repository_owner }}/dynamic-labyrinth
+
+jobs:
+  # ==========================================================================
+  # Deploy to Environment
+  # ==========================================================================
+  deploy:
+    name: Deploy to ${{ github.event.inputs.environment || 'staging' }}
+    runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.environment || 'staging' }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set deployment variables
+        id: vars
+        run: |
+          ENV="${{ github.event.inputs.environment || 'staging' }}"
+          VERSION="${{ github.event.inputs.version || 'latest' }}"
+          
+          echo "environment=$ENV" >> $GITHUB_OUTPUT
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "timestamp=$(date -u +%Y%m%d%H%M%S)" >> $GITHUB_OUTPUT
+
+      - name: Log in to Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup SSH
+        uses: webfactory/ssh-agent@v0.8.0
+        with:
+          ssh-private-key: ${{ secrets.DEPLOY_SSH_KEY }}
+
+      - name: Add host to known_hosts
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -H ${{ secrets.DEPLOY_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Create deployment package
+        run: |
+          mkdir -p deploy-package
+          
+          # Copy necessary files
+          cp docker-compose.yml deploy-package/
+          cp docker-compose.prod.yml deploy-package/
+          cp .env.example deploy-package/.env.template
+          cp -r docker/ deploy-package/
+          cp -r infra/scripts/ deploy-package/scripts/
+          
+          # Create version file
+          echo "${{ steps.vars.outputs.version }}" > deploy-package/VERSION
+          echo "${{ github.sha }}" > deploy-package/COMMIT
+          
+          # Create archive
+          tar -czf deploy-package.tar.gz deploy-package/
+
+      - name: Upload deployment package
+        run: |
+          scp deploy-package.tar.gz ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}:/tmp/
+
+      - name: Execute deployment
+        run: |
+          ssh ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} << 'DEPLOY_SCRIPT'
+            set -e
+            
+            # Configuration
+            DEPLOY_DIR="/opt/dynamic-labyrinth"
+            BACKUP_DIR="/opt/dynamic-labyrinth-backups"
+            ENVIRONMENT="${{ steps.vars.outputs.environment }}"
+            VERSION="${{ steps.vars.outputs.version }}"
+            TIMESTAMP="${{ steps.vars.outputs.timestamp }}"
+            
+            echo "=== Dynamic Labyrinth Deployment ==="
+            echo "Environment: $ENVIRONMENT"
+            echo "Version: $VERSION"
+            echo "Timestamp: $TIMESTAMP"
+            
+            # Create directories
+            sudo mkdir -p "$DEPLOY_DIR" "$BACKUP_DIR"
+            
+            # Backup current deployment
+            if [ -d "$DEPLOY_DIR/current" ]; then
+              echo "Backing up current deployment..."
+              sudo cp -r "$DEPLOY_DIR/current" "$BACKUP_DIR/backup-$TIMESTAMP"
+              
+              # Keep only last 5 backups
+              cd "$BACKUP_DIR"
+              ls -dt backup-* | tail -n +6 | xargs -r sudo rm -rf
+            fi
+            
+            # Extract new deployment
+            echo "Extracting deployment package..."
+            cd /tmp
+            tar -xzf deploy-package.tar.gz
+            sudo rm -rf "$DEPLOY_DIR/releases/$TIMESTAMP"
+            sudo mkdir -p "$DEPLOY_DIR/releases/$TIMESTAMP"
+            sudo cp -r deploy-package/* "$DEPLOY_DIR/releases/$TIMESTAMP/"
+            
+            # Update symlink
+            echo "Updating symlink..."
+            sudo ln -sfn "$DEPLOY_DIR/releases/$TIMESTAMP" "$DEPLOY_DIR/current"
+            
+            # Configure environment
+            cd "$DEPLOY_DIR/current"
+            if [ ! -f .env ]; then
+              sudo cp .env.template .env
+              echo "WARNING: Created .env from template - please configure!"
+            fi
+            
+            # Pull latest images
+            echo "Pulling Docker images..."
+            sudo docker-compose -f docker-compose.yml -f docker-compose.prod.yml pull
+            
+            # Deploy with zero-downtime
+            echo "Starting deployment..."
+            sudo docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d --remove-orphans
+            
+            # Wait for health
+            echo "Waiting for services to be healthy..."
+            sleep 10
+            
+            for i in {1..30}; do
+              if curl -sf http://localhost:8000/healthz > /dev/null; then
+                echo "Orchestrator is healthy!"
+                break
+              fi
+              echo "Waiting... ($i/30)"
+              sleep 5
+            done
+            
+            # Verify deployment
+            echo "Verifying deployment..."
+            curl -sf http://localhost:8000/healthz | jq .
+            curl -sf http://localhost:8000/pools | jq .
+            
+            # Cleanup
+            rm -rf /tmp/deploy-package*
+            
+            echo "=== Deployment Complete ==="
+          DEPLOY_SCRIPT
+
+      - name: Notify on success
+        if: success()
+        uses: slackapi/slack-github-action@v1.25.0
+        with:
+          payload: |
+            {
+              "text": "✅ Dynamic Labyrinth deployed to ${{ steps.vars.outputs.environment }}",
+              "blocks": [
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "*Dynamic Labyrinth Deployment*\n✅ Successfully deployed to *${{ steps.vars.outputs.environment }}*"
+                  }
+                },
+                {
+                  "type": "section",
+                  "fields": [
+                    {"type": "mrkdwn", "text": "*Version:*\n${{ steps.vars.outputs.version }}"},
+                    {"type": "mrkdwn", "text": "*Commit:*\n${{ github.sha }}"},
+                    {"type": "mrkdwn", "text": "*Triggered by:*\n${{ github.actor }}"}
+                  ]
+                }
+              ]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
+        continue-on-error: true
+
+      - name: Notify on failure
+        if: failure()
+        uses: slackapi/slack-github-action@v1.25.0
+        with:
+          payload: |
+            {
+              "text": "❌ Dynamic Labyrinth deployment to ${{ steps.vars.outputs.environment }} FAILED",
+              "blocks": [
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "*Dynamic Labyrinth Deployment FAILED*\n❌ Failed to deploy to *${{ steps.vars.outputs.environment }}*"
+                  }
+                },
+                {
+                  "type": "section",
+                  "fields": [
+                    {"type": "mrkdwn", "text": "*Version:*\n${{ steps.vars.outputs.version }}"},
+                    {"type": "mrkdwn", "text": "*Workflow:*\n<${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View Logs>"}
+                  ]
+                }
+              ]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
+        continue-on-error: true
+
+  # ==========================================================================
+  # Post-Deployment Validation
+  # ==========================================================================
+  validate:
+    name: Validate Deployment
+    runs-on: ubuntu-latest
+    needs: deploy
+    environment: ${{ github.event.inputs.environment || 'staging' }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup SSH
+        uses: webfactory/ssh-agent@v0.8.0
+        with:
+          ssh-private-key: ${{ secrets.DEPLOY_SSH_KEY }}
+
+      - name: Run smoke tests
+        run: |
+          ssh ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} << 'SMOKE_TESTS'
+            set -e
+            
+            echo "=== Running Smoke Tests ==="
+            
+            # Test orchestrator health
+            echo "Testing orchestrator health..."
+            curl -sf http://localhost:8000/healthz | jq .
+            
+            # Test pools endpoint
+            echo "Testing pools endpoint..."
+            curl -sf http://localhost:8000/pools | jq .
+            
+            # Test nginx
+            echo "Testing nginx..."
+            curl -sf http://localhost/health || echo "Nginx health check endpoint may not be configured"
+            
+            # Check container status
+            echo "Checking container status..."
+            docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Health}}" | grep -E "honeytrap|orchestrator|nginx"
+            
+            echo "=== Smoke Tests Passed ==="
+          SMOKE_TESTS
+
+  # ==========================================================================
+  # Rollback (manual trigger)
+  # ==========================================================================
+  rollback:
+    name: Rollback
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch' && failure()
+    needs: [deploy, validate]
+    environment: ${{ github.event.inputs.environment || 'staging' }}
+
+    steps:
+      - name: Setup SSH
+        uses: webfactory/ssh-agent@v0.8.0
+        with:
+          ssh-private-key: ${{ secrets.DEPLOY_SSH_KEY }}
+
+      - name: Execute rollback
+        run: |
+          ssh ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} << 'ROLLBACK'
+            set -e
+            
+            DEPLOY_DIR="/opt/dynamic-labyrinth"
+            BACKUP_DIR="/opt/dynamic-labyrinth-backups"
+            
+            echo "=== Rolling Back ==="
+            
+            # Find latest backup
+            LATEST_BACKUP=$(ls -dt "$BACKUP_DIR"/backup-* | head -1)
+            
+            if [ -z "$LATEST_BACKUP" ]; then
+              echo "No backup found!"
+              exit 1
+            fi
+            
+            echo "Rolling back to: $LATEST_BACKUP"
+            
+            # Stop current deployment
+            cd "$DEPLOY_DIR/current"
+            sudo docker-compose down
+            
+            # Restore backup
+            sudo ln -sfn "$LATEST_BACKUP" "$DEPLOY_DIR/current"
+            
+            # Start services
+            cd "$DEPLOY_DIR/current"
+            sudo docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+            
+            echo "=== Rollback Complete ==="
+          ROLLBACK

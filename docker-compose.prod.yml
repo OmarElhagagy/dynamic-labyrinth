@@ -1,0 +1,152 @@
+# =============================================================================
+# Dynamic Labyrinth - Docker Compose Production Configuration
+# =============================================================================
+# Production-optimized settings with security hardening
+# Usage: docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+# =============================================================================
+
+version: "3.9"
+
+services:
+
+  # ===========================================================================
+  # Nginx - Production Settings
+  # ===========================================================================
+  nginx:
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 128M
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 120s
+
+  # ===========================================================================
+  # Orchestrator - Production Settings
+  # ===========================================================================
+  orchestrator:
+    environment:
+      - ORCHESTRATOR_DEBUG=false
+      - ORCHESTRATOR_LOG_LEVEL=INFO
+      - ORCHESTRATOR_LOG_FORMAT=json
+      # HMAC_SECRET should be set via external secrets management
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.1'
+          memory: 128M
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 120s
+    # Don't expose port directly in production
+    ports: []
+
+  # ===========================================================================
+  # Level 1 Honeytraps - Production Settings
+  # ===========================================================================
+  honeytrap-level1-1:
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 256M
+        reservations:
+          cpus: '0.1'
+          memory: 64M
+
+  honeytrap-level1-2:
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 256M
+        reservations:
+          cpus: '0.1'
+          memory: 64M
+
+  honeytrap-level1-3:
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 256M
+        reservations:
+          cpus: '0.1'
+          memory: 64M
+
+  honeytrap-level1-4:
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 256M
+        reservations:
+          cpus: '0.1'
+          memory: 64M
+
+  honeytrap-level1-5:
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 256M
+        reservations:
+          cpus: '0.1'
+          memory: 64M
+
+  # ===========================================================================
+  # Level 2 Honeytraps - Production Settings
+  # ===========================================================================
+  honeytrap-level2-1:
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.1'
+          memory: 128M
+
+  honeytrap-level2-2:
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.1'
+          memory: 128M
+
+  honeytrap-level2-3:
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.1'
+          memory: 128M
+
+  # ===========================================================================
+  # Level 3 Honeytrap - Production Settings
+  # ===========================================================================
+  honeytrap-level3-1:
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G
+        reservations:
+          cpus: '0.25'
+          memory: 256M
