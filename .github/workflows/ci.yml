@@ -111,7 +111,7 @@ jobs:
           HMAC_SECRET: test-secret-key
 
       - name: Upload coverage report
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@v5
         with:
           files: orchestrator/coverage.xml
           flags: orchestrator
@@ -141,7 +141,7 @@ jobs:
           go test -v -race -coverprofile=coverage.out -timeout 5m $(go list ./... | grep -v 'services/ja3/crypto/tls')
 
       - name: Upload coverage
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@v5
         with:
           files: honeytrap/coverage.out
           flags: honeytrap
