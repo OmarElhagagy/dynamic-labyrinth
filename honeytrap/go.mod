@@ -24,7 +24,7 @@ require (
 	github.com/fuyufjh/splunk-hec-go v0.3.3
 	github.com/glycerine/goconvey v0.0.0-20190410193231-58a59202ab31 // indirect
 	github.com/glycerine/rbuf v0.0.0-20171031012212-54320fe9f6f3
-	github.com/go-asn1-ber/asn1-ber v0.0.0-20170511165959-379148ca0225
+	github.com/go-asn1-ber/asn1-ber v1.5.7
 	github.com/golang/protobuf v1.3.1
 	github.com/golang/snappy v0.0.0-20170215233205-553a64147049 // indirect
 	github.com/google/gopacket v1.1.14
