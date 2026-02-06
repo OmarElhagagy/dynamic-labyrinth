@@ -9,9 +9,9 @@ from typing import cast
 
 from config import get_settings
 from models import ContainerState, SessionState
-from sqlalchemy import Boolean, Column, DateTime, Integer, String
+from sqlalchemy import String
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
-from sqlalchemy.orm import DeclarativeBase
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 from sqlalchemy.pool import StaticPool
 
 
@@ -31,16 +31,16 @@ class ContainerModel(Base):
 
     __tablename__ = "containers"
 
-    id = Column(String, primary_key=True)
-    level = Column(Integer, nullable=False, index=True)
-    host = Column(String, nullable=False)
-    port = Column(Integer, nullable=False)
-    state = Column(String, default=ContainerState.IDLE.value, index=True)
-    assigned_session_id = Column(String, nullable=True, index=True)
-    last_health_check = Column(DateTime, nullable=True)
-    healthy = Column(Boolean, default=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    id: Mapped[str] = mapped_column(String, primary_key=True)
+    level: Mapped[int] = mapped_column(nullable=False, index=True)
+    host: Mapped[str] = mapped_column(nullable=False)
+    port: Mapped[int] = mapped_column(nullable=False)
+    state: Mapped[str] = mapped_column(default=ContainerState.IDLE.value, index=True)
+    assigned_session_id: Mapped[str | None] = mapped_column(nullable=True, index=True)
+    last_health_check: Mapped[datetime | None] = mapped_column(nullable=True)
+    healthy: Mapped[bool] = mapped_column(default=True)
+    created_at: Mapped[datetime] = mapped_column(default=datetime.utcnow)
+    updated_at: Mapped[datetime] = mapped_column(default=datetime.utcnow, onupdate=datetime.utcnow)
 
     @property
     def address(self) -> str:
@@ -52,16 +52,16 @@ class SessionModel(Base):
 
     __tablename__ = "sessions"
 
-    id = Column(String, primary_key=True)
-    current_level = Column(Integer, default=1, index=True)
-    container_id = Column(String, nullable=True, index=True)
-    state = Column(String, default=SessionState.ACTIVE.value, index=True)
-    skill_score = Column(Integer, default=0)
-    escalation_count = Column(Integer, default=0)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    expires_at = Column(DateTime, nullable=True)
-    last_decision_id = Column(String, nullable=True)
+    id: Mapped[str] = mapped_column(String, primary_key=True)
+    current_level: Mapped[int] = mapped_column(default=1, index=True)
+    container_id: Mapped[str | None] = mapped_column(nullable=True, index=True)
+    state: Mapped[str] = mapped_column(default=SessionState.ACTIVE.value, index=True)
+    skill_score: Mapped[int] = mapped_column(default=0)
+    escalation_count: Mapped[int] = mapped_column(default=0)
+    created_at: Mapped[datetime] = mapped_column(default=datetime.utcnow)
+    updated_at: Mapped[datetime] = mapped_column(default=datetime.utcnow, onupdate=datetime.utcnow)
+    expires_at: Mapped[datetime | None] = mapped_column(nullable=True)
+    last_decision_id: Mapped[str | None] = mapped_column(nullable=True)
 
 
 class NginxMapEntryModel(Base):
@@ -69,11 +69,11 @@ class NginxMapEntryModel(Base):
 
     __tablename__ = "nginx_map_entries"
 
-    session_cookie = Column(String, primary_key=True)
-    session_id = Column(String, nullable=False, index=True)
-    upstream = Column(String, nullable=False)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    session_cookie: Mapped[str] = mapped_column(String, primary_key=True)
+    session_id: Mapped[str] = mapped_column(nullable=False, index=True)
+    upstream: Mapped[str] = mapped_column(nullable=False)
+    created_at: Mapped[datetime] = mapped_column(default=datetime.utcnow)
+    updated_at: Mapped[datetime] = mapped_column(default=datetime.utcnow, onupdate=datetime.utcnow)
 
 
 class DecisionLogModel(Base):
@@ -81,16 +81,16 @@ class DecisionLogModel(Base):
 
     __tablename__ = "decision_log"
 
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    session_id = Column(String, nullable=False, index=True)
-    action = Column(String, nullable=False)
-    rule_id = Column(String, nullable=False)
-    skill_score_before = Column(Integer, nullable=True)
-    skill_score_after = Column(Integer, nullable=False)
-    from_container = Column(String, nullable=True)
-    to_container = Column(String, nullable=True)
-    explanation = Column(String, nullable=True)
-    timestamp = Column(DateTime, default=datetime.utcnow, index=True)
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    session_id: Mapped[str] = mapped_column(nullable=False, index=True)
+    action: Mapped[str] = mapped_column(nullable=False)
+    rule_id: Mapped[str] = mapped_column(nullable=False)
+    skill_score_before: Mapped[int | None] = mapped_column(nullable=True)
+    skill_score_after: Mapped[int] = mapped_column(nullable=False)
+    from_container: Mapped[str | None] = mapped_column(nullable=True)
+    to_container: Mapped[str | None] = mapped_column(nullable=True)
+    explanation: Mapped[str | None] = mapped_column(nullable=True)
+    timestamp: Mapped[datetime] = mapped_column(default=datetime.utcnow, index=True)
 
 
 # =============================================================================

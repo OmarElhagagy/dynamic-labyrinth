@@ -171,8 +171,10 @@ async def rate_limit_handler(request: Request, exc: RateLimitExceeded):
 # Dependencies
 # =============================================================================
 
+from collections.abc import AsyncGenerator
 
-async def get_db() -> AsyncSession:
+
+async def get_db() -> AsyncGenerator[AsyncSession, None]:
     """Dependency to get database session."""
     async for session in get_db_session():
         yield session

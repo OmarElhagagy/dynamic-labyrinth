@@ -294,7 +294,7 @@ class PoolManager:
 
             unhealthy_result = await db.execute(
                 select(func.count(ContainerModel.id)).where(
-                    ContainerModel.level == level, not ContainerModel.healthy
+                    ContainerModel.level == level, ContainerModel.healthy == False  # noqa: E712
                 )
             )
             unhealthy = unhealthy_result.scalar() or 0
