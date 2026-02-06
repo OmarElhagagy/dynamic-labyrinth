@@ -196,11 +196,11 @@ jobs:
             
             # Pull latest images
             echo "Pulling Docker images..."
-            sudo docker-compose -f docker-compose.yml -f docker-compose.prod.yml pull
+            sudo docker compose -f docker-compose.yml -f docker-compose.prod.yml pull
             
             # Deploy with zero-downtime
             echo "Starting deployment..."
-            sudo docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d --remove-orphans
+            sudo docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --remove-orphans
             
             # Wait for health
             echo "Waiting for services to be healthy..."
@@ -367,14 +367,14 @@ jobs:
             
             # Stop current deployment
             cd "$DEPLOY_DIR/current"
-            sudo docker-compose down
+            sudo docker compose down
             
             # Restore backup
             sudo ln -sfn "$LATEST_BACKUP" "$DEPLOY_DIR/current"
             
             # Start services
             cd "$DEPLOY_DIR/current"
-            sudo docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+            sudo docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
             
             echo "=== Rollback Complete ==="
           ROLLBACK

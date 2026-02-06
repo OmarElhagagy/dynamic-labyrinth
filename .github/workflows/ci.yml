@@ -249,10 +249,10 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Start services with docker-compose
+      - name: Start services with docker compose
         run: |
           cp .env.example .env
-          docker-compose -f docker-compose.yml -f docker-compose.override.yml up -d --build
+          docker compose -f docker-compose.yml -f docker-compose.override.yml up -d --build
         env:
           HMAC_SECRET: integration-test-secret
 
@@ -275,8 +275,8 @@ jobs:
       - name: Collect logs on failure
         if: failure()
         run: |
-          docker-compose logs --tail=100
+          docker compose logs --tail=100
 
       - name: Stop services
         if: always()
-        run: docker-compose down -v
+        run: docker compose down -v
