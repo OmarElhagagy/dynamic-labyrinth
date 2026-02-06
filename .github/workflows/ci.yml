@@ -252,13 +252,33 @@ jobs:
       - name: Start services with docker compose
         run: |
           cp .env.example .env
+          # Start honeytrap containers first without waiting for dependencies
+          docker compose -f docker-compose.yml -f docker-compose.override.yml up -d --build honeytrap-level1-1 honeytrap-level2-1 honeytrap-level3-1
+          
+          # Wait for honeytrap containers to be healthy (30s start_period + some margin)
+          echo "Waiting for honeytrap containers to initialize..."
+          sleep 35
+          
+          # Check honeytrap health status
+          echo "Honeytrap container status:"
+          docker compose ps honeytrap-level1-1
+          
+          # Start remaining services
           docker compose -f docker-compose.yml -f docker-compose.override.yml up -d --build
         env:
           HMAC_SECRET: integration-test-secret
 
       - name: Wait for services to be healthy
         run: |
-          timeout 120 bash -c 'until curl -sf http://localhost:8000/healthz; do sleep 5; done'
+          echo "Container status before waiting:"
+          docker compose ps
+          
+          # Wait for orchestrator with extended timeout
+          timeout 180 bash -c 'until curl -sf http://localhost:8000/healthz; do 
+            echo "Waiting for orchestrator... (checking container status)"
+            docker compose ps orchestrator 2>/dev/null || true
+            sleep 5
+          done'
           echo "Orchestrator is healthy"
 
       - name: Run integration tests
@@ -275,7 +295,17 @@ jobs:
       - name: Collect logs on failure
         if: failure()
         run: |
-          docker compose logs --tail=100
+          echo "=== Container Status ==="
+          docker compose ps -a
+          echo ""
+          echo "=== Honeytrap Level 1 Logs ==="
+          docker compose logs honeytrap-level1-1 --tail=50 2>&1 || true
+          echo ""
+          echo "=== Orchestrator Logs ==="
+          docker compose logs orchestrator --tail=50 2>&1 || true
+          echo ""
+          echo "=== All Container Logs ==="
+          docker compose logs --tail=30
 
       - name: Stop services
         if: always()

@@ -70,9 +70,10 @@ ENV HONEYTRAP_LEVEL=2 \
 # SSH: 22, HTTP: 80, Telnet: 23, FTP: 21, SMTP: 25, DNS: 53
 EXPOSE 21 22 23 25 53 80
 
-# Health check - verify honeytrap process is running (PID 1 in container)
-HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-    CMD test -f /proc/1/cmdline || exit 1
+# Health check - verify honeytrap is listening on SSH port (production-ready)
+# Uses TCP check instead of process check for reliability
+HEALTHCHECK --interval=10s --timeout=3s --start-period=30s --retries=5 \
+    CMD nc -z 127.0.0.1 22 || exit 1
 
 # Volumes for persistent data
 VOLUME ["/data", "/sessions"]

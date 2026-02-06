@@ -165,11 +165,11 @@ services:
       backend:
         ipv4_address: 10.0.2.11
     healthcheck:
-      test: ["CMD-SHELL", "test -f /proc/1/cmdline"]
-      interval: 30s
-      timeout: 5s
-      retries: 3
-      start_period: 10s
+      test: ["CMD", "nc", "-z", "127.0.0.1", "22"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 30s
     logging:
       driver: json-file
       options:
@@ -193,11 +193,11 @@ services:
       backend:
         ipv4_address: 10.0.2.12
     healthcheck:
-      test: ["CMD-SHELL", "test -f /proc/1/cmdline"]
-      interval: 30s
-      timeout: 5s
-      retries: 3
-      start_period: 10s
+      test: ["CMD", "nc", "-z", "127.0.0.1", "22"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 30s
     logging:
       driver: json-file
       options:
@@ -221,11 +221,11 @@ services:
       backend:
         ipv4_address: 10.0.2.13
     healthcheck:
-      test: ["CMD-SHELL", "test -f /proc/1/cmdline"]
-      interval: 30s
-      timeout: 5s
-      retries: 3
-      start_period: 10s
+      test: ["CMD", "nc", "-z", "127.0.0.1", "22"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 30s
     logging:
       driver: json-file
       options:
@@ -249,11 +249,11 @@ services:
       backend:
         ipv4_address: 10.0.2.14
     healthcheck:
-      test: ["CMD-SHELL", "test -f /proc/1/cmdline"]
-      interval: 30s
-      timeout: 5s
-      retries: 3
-      start_period: 10s
+      test: ["CMD", "nc", "-z", "127.0.0.1", "22"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 30s
     logging:
       driver: json-file
       options:
@@ -277,11 +277,11 @@ services:
       backend:
         ipv4_address: 10.0.2.15
     healthcheck:
-      test: ["CMD-SHELL", "test -f /proc/1/cmdline"]
-      interval: 30s
-      timeout: 5s
-      retries: 3
-      start_period: 10s
+      test: ["CMD", "nc", "-z", "127.0.0.1", "22"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 30s
     logging:
       driver: json-file
       options:
@@ -308,11 +308,11 @@ services:
       backend:
         ipv4_address: 10.0.2.21
     healthcheck:
-      test: ["CMD-SHELL", "test -f /proc/1/cmdline"]
-      interval: 30s
-      timeout: 5s
-      retries: 3
-      start_period: 10s
+      test: ["CMD", "nc", "-z", "127.0.0.1", "22"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 30s
     logging:
       driver: json-file
       options:
@@ -336,11 +336,11 @@ services:
       backend:
         ipv4_address: 10.0.2.22
     healthcheck:
-      test: ["CMD-SHELL", "test -f /proc/1/cmdline"]
-      interval: 30s
-      timeout: 5s
-      retries: 3
-      start_period: 10s
+      test: ["CMD", "nc", "-z", "127.0.0.1", "22"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 30s
     logging:
       driver: json-file
       options:
@@ -364,11 +364,11 @@ services:
       backend:
         ipv4_address: 10.0.2.23
     healthcheck:
-      test: ["CMD-SHELL", "test -f /proc/1/cmdline"]
-      interval: 30s
-      timeout: 5s
-      retries: 3
-      start_period: 10s
+      test: ["CMD", "nc", "-z", "127.0.0.1", "22"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 30s
     logging:
       driver: json-file
       options:
@@ -398,11 +398,11 @@ services:
       - NET_RAW
       - NET_ADMIN
     healthcheck:
-      test: ["CMD-SHELL", "test -f /proc/1/cmdline"]
-      interval: 30s
-      timeout: 5s
-      retries: 3
-      start_period: 15s
+      test: ["CMD", "nc", "-z", "127.0.0.1", "22"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 45s
     logging:
       driver: json-file
       options:
