@@ -11,8 +11,9 @@ require (
 	github.com/Shopify/toxiproxy v2.1.4+incompatible // indirect
 	github.com/boltdb/bolt v1.3.1
 	github.com/cenkalti/backoff/v4 v4.0.0
-	github.com/dgraph-io/badger v0.0.0-20180227002726-94594b20babf
+	github.com/dgraph-io/badger v2.0.0-rc2+incompatible
 	github.com/dgryski/go-farm v0.0.0-20180109070241-2de33835d102 // indirect
+	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/dutchcoders/gobus v0.0.0-20180915095724-ece5a7810d96
 	github.com/eapache/go-resiliency v1.0.0 // indirect
 	github.com/eapache/go-xerial-snappy v0.0.0-20160609142408-bb955e01b934 // indirect
