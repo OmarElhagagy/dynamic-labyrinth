@@ -15,6 +15,7 @@ Endpoints:
 
 import asyncio
 import time
+from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 
 import structlog
@@ -170,8 +171,6 @@ async def rate_limit_handler(request: Request, exc: RateLimitExceeded):
 # =============================================================================
 # Dependencies
 # =============================================================================
-
-from collections.abc import AsyncGenerator
 
 
 async def get_db() -> AsyncGenerator[AsyncSession, None]:
