@@ -113,14 +113,13 @@ async def lifespan(app: FastAPI):
         for error in config_errors:
             log.error("Configuration error", error=error)
         if not settings.debug:
-            raise RuntimeError(
-                f"Production configuration invalid: {'; '.join(config_errors)}"
-            )
+            raise RuntimeError(f"Production configuration invalid: {'; '.join(config_errors)}")
         else:
             log.warning("Running in debug mode with invalid production config")
 
     # Verify nginx map file path is writable
     from pathlib import Path
+
     nginx_map_dir = Path(settings.nginx_map_path).parent
     if nginx_map_dir.exists():
         test_file = nginx_map_dir / ".write_test"
@@ -137,9 +136,7 @@ async def lifespan(app: FastAPI):
             if not settings.debug:
                 raise RuntimeError(f"Nginx map path not writable: {nginx_map_dir}") from e
     else:
-        log.warning(
-            "Nginx map directory does not exist yet", path=str(nginx_map_dir)
-        )
+        log.warning("Nginx map directory does not exist yet", path=str(nginx_map_dir))
         try:
             nginx_map_dir.mkdir(parents=True, exist_ok=True)
             log.info("Created nginx map directory", path=str(nginx_map_dir))
@@ -150,9 +147,7 @@ async def lifespan(app: FastAPI):
                 error=str(e),
             )
             if not settings.debug:
-                raise RuntimeError(
-                    f"Cannot create nginx map directory: {nginx_map_dir}"
-                ) from e
+                raise RuntimeError(f"Cannot create nginx map directory: {nginx_map_dir}") from e
 
     # Initialize database
     await init_db()
@@ -198,9 +193,7 @@ else:
     cors_origins = []
 
 if not cors_origins and not settings.debug:
-    log.warning(
-        "CORS origins not configured for production - defaulting to internal networks only"
-    )
+    log.warning("CORS origins not configured for production - defaulting to internal networks only")
     cors_origins = ["http://localhost:3000", "http://dashboard:3000", "http://10.0.3.0/24"]
 
 app.add_middleware(
