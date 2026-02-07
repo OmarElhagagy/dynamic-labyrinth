@@ -48,7 +48,8 @@ class OrchestratorSettings(BaseSettings):
 
     # CORS - comma-separated list of allowed origins
     cors_origins: str = Field(
-        default="", description="Comma-separated list of allowed CORS origins. Empty = allow all in debug mode only."
+        default="",
+        description="Comma-separated list of allowed CORS origins. Empty = allow all in debug mode only.",
     )
 
     @property

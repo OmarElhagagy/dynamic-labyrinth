@@ -113,7 +113,9 @@ async def lifespan(app: FastAPI):
         for error in config_errors:
             log.error("Configuration error", error=error)
         if not settings.debug:
-            raise RuntimeError(f"Production configuration invalid: {'; '.join(config_errors)}")
+            raise RuntimeError(
+                f"Production configuration invalid: {'; '.join(config_errors)}"
+            )
         else:
             log.warning("Running in debug mode with invalid production config")
 
@@ -127,18 +129,30 @@ async def lifespan(app: FastAPI):
             test_file.unlink()
             log.info("Nginx map directory is writable", path=str(nginx_map_dir))
         except (OSError, PermissionError) as e:
-            log.error("Nginx map directory is NOT writable", path=str(nginx_map_dir), error=str(e))
+            log.error(
+                "Nginx map directory is NOT writable",
+                path=str(nginx_map_dir),
+                error=str(e),
+            )
             if not settings.debug:
                 raise RuntimeError(f"Nginx map path not writable: {nginx_map_dir}") from e
     else:
-        log.warning("Nginx map directory does not exist yet", path=str(nginx_map_dir))
+        log.warning(
+            "Nginx map directory does not exist yet", path=str(nginx_map_dir)
+        )
         try:
             nginx_map_dir.mkdir(parents=True, exist_ok=True)
             log.info("Created nginx map directory", path=str(nginx_map_dir))
         except (OSError, PermissionError) as e:
-            log.error("Cannot create nginx map directory", path=str(nginx_map_dir), error=str(e))
+            log.error(
+                "Cannot create nginx map directory",
+                path=str(nginx_map_dir),
+                error=str(e),
+            )
             if not settings.debug:
-                raise RuntimeError(f"Cannot create nginx map directory: {nginx_map_dir}") from e
+                raise RuntimeError(
+                    f"Cannot create nginx map directory: {nginx_map_dir}"
+                ) from e
 
     # Initialize database
     await init_db()
@@ -176,9 +190,17 @@ app = FastAPI(
 # =============================================================================
 
 # CORS - Use configured origins in production, allow all only in debug mode
-cors_origins = settings.cors_origins_list if settings.cors_origins_list else ["*"] if settings.debug else []
+if settings.cors_origins_list:
+    cors_origins = settings.cors_origins_list
+elif settings.debug:
+    cors_origins = ["*"]
+else:
+    cors_origins = []
+
 if not cors_origins and not settings.debug:
-    log.warning("CORS origins not configured for production - defaulting to internal networks only")
+    log.warning(
+        "CORS origins not configured for production - defaulting to internal networks only"
+    )
     cors_origins = ["http://localhost:3000", "http://dashboard:3000", "http://10.0.3.0/24"]
 
 app.add_middleware(
