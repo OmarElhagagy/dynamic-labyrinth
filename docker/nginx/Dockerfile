@@ -21,12 +21,12 @@ RUN mkdir -p /etc/nginx/maps /etc/nginx/conf.d
 COPY docker/nginx/nginx.conf /etc/nginx/nginx.conf
 COPY docker/nginx/conf.d/ /etc/nginx/conf.d/
 
-# Create empty map file (will be populated by orchestrator)
-RUN touch /etc/nginx/maps/honeytrap_upstream.map && \
-    echo 'map $cookie_dlsess $honeytrap_upstream { default "level1_pool"; }' > /etc/nginx/maps/honeytrap_upstream.map
+# Copy entrypoint script
+COPY docker/nginx/docker-entrypoint.sh /docker-entrypoint.sh
+RUN chmod +x /docker-entrypoint.sh
 
-# Set permissions
-RUN chown -R nginx:nginx /etc/nginx/maps
+# Set permissions for maps directory (will be populated at runtime)
+RUN mkdir -p /etc/nginx/maps && chown -R nginx:nginx /etc/nginx/maps
 
 # Expose ports
 EXPOSE 80 443
@@ -35,5 +35,6 @@ EXPOSE 80 443
 HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
     CMD curl -sf http://localhost/health || exit 1
 
-# Run nginx
+# Use entrypoint to ensure map file exists before nginx starts
+ENTRYPOINT ["/docker-entrypoint.sh"]
 CMD ["nginx", "-g", "daemon off;"]

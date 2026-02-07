@@ -121,7 +121,8 @@ services:
       - ORCHESTRATOR_DEBUG=false
       - ORCHESTRATOR_DATABASE_URL=sqlite+aiosqlite:///./data/orchestrator.db
       - ORCHESTRATOR_NGINX_MAP_PATH=/nginx_maps/honeytrap_upstream.map
-      - ORCHESTRATOR_HMAC_SECRET=${HMAC_SECRET:-change-me-in-production}
+      - ORCHESTRATOR_HMAC_SECRET=${HMAC_SECRET:?HMAC_SECRET required}
+      - ORCHESTRATOR_CORS_ORIGINS=${ORCHESTRATOR_CORS_ORIGINS:-http://localhost:3000,http://dashboard:3000}
       - ORCHESTRATOR_LOG_LEVEL=INFO
     volumes:
       - orchestrator_data:/app/data

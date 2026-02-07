@@ -107,6 +107,39 @@ async def lifespan(app: FastAPI):
     _start_time = time.time()
     log.info("Starting Orchestrator service", version=settings.service_version)
 
+    # Validate production configuration
+    config_errors = settings.validate_production_config()
+    if config_errors:
+        for error in config_errors:
+            log.error("Configuration error", error=error)
+        if not settings.debug:
+            raise RuntimeError(f"Production configuration invalid: {'; '.join(config_errors)}")
+        else:
+            log.warning("Running in debug mode with invalid production config")
+
+    # Verify nginx map file path is writable
+    from pathlib import Path
+    nginx_map_dir = Path(settings.nginx_map_path).parent
+    if nginx_map_dir.exists():
+        test_file = nginx_map_dir / ".write_test"
+        try:
+            test_file.touch()
+            test_file.unlink()
+            log.info("Nginx map directory is writable", path=str(nginx_map_dir))
+        except (OSError, PermissionError) as e:
+            log.error("Nginx map directory is NOT writable", path=str(nginx_map_dir), error=str(e))
+            if not settings.debug:
+                raise RuntimeError(f"Nginx map path not writable: {nginx_map_dir}")
+    else:
+        log.warning("Nginx map directory does not exist yet", path=str(nginx_map_dir))
+        try:
+            nginx_map_dir.mkdir(parents=True, exist_ok=True)
+            log.info("Created nginx map directory", path=str(nginx_map_dir))
+        except (OSError, PermissionError) as e:
+            log.error("Cannot create nginx map directory", path=str(nginx_map_dir), error=str(e))
+            if not settings.debug:
+                raise RuntimeError(f"Cannot create nginx map directory: {nginx_map_dir}")
+
     # Initialize database
     await init_db()
     log.info("Database initialized")
@@ -142,12 +175,17 @@ app = FastAPI(
 # Middleware
 # =============================================================================
 
-# CORS
+# CORS - Use configured origins in production, allow all only in debug mode
+cors_origins = settings.cors_origins_list if settings.cors_origins_list else ["*"] if settings.debug else []
+if not cors_origins and not settings.debug:
+    log.warning("CORS origins not configured for production - defaulting to internal networks only")
+    cors_origins = ["http://localhost:3000", "http://dashboard:3000", "http://10.0.3.0/24"]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Restrict in production
+    allow_origins=cors_origins,
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE"],
     allow_headers=["*"],
 )
 

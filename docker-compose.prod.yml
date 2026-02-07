@@ -33,7 +33,8 @@ services:
       - ORCHESTRATOR_DEBUG=false
       - ORCHESTRATOR_LOG_LEVEL=INFO
       - ORCHESTRATOR_LOG_FORMAT=json
-      # HMAC_SECRET should be set via external secrets management
+      # HMAC_SECRET must be set via .env file or secrets - startup will fail otherwise
+      - ORCHESTRATOR_CORS_ORIGINS=${ORCHESTRATOR_CORS_ORIGINS:?CORS origins required for production}
     deploy:
       resources:
         limits:

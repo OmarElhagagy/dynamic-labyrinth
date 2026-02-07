@@ -41,10 +41,34 @@ class OrchestratorSettings(BaseSettings):
 
     # Security
     hmac_secret: str = Field(
-        default="change-me-in-production", description="HMAC secret for request signing"
+        default="", description="HMAC secret for request signing. REQUIRED in production."
     )
     hmac_header_name: str = "X-HMAC-Signature"
     rate_limit: str = "100/minute"
+
+    # CORS - comma-separated list of allowed origins
+    cors_origins: str = Field(
+        default="", description="Comma-separated list of allowed CORS origins. Empty = allow all in debug mode only."
+    )
+
+    @property
+    def cors_origins_list(self) -> list[str]:
+        """Parse CORS origins from comma-separated string."""
+        if self.cors_origins:
+            return [origin.strip() for origin in self.cors_origins.split(",") if origin.strip()]
+        return []
+
+    def validate_production_config(self) -> list[str]:
+        """Validate configuration for production readiness. Returns list of errors."""
+        errors = []
+        if not self.debug:
+            if not self.hmac_secret or self.hmac_secret == "change-me-in-production":
+                errors.append("HMAC_SECRET must be set to a secure value in production")
+            if len(self.hmac_secret) < 32:
+                errors.append("HMAC_SECRET must be at least 32 characters")
+            if not self.cors_origins:
+                errors.append("CORS_ORIGINS should be explicitly set in production")
+        return errors
 
     # External services
     cerebrum_url: str = "http://cerebrum:8001"
