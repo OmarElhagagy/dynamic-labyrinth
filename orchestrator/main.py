@@ -129,7 +129,7 @@ async def lifespan(app: FastAPI):
         except (OSError, PermissionError) as e:
             log.error("Nginx map directory is NOT writable", path=str(nginx_map_dir), error=str(e))
             if not settings.debug:
-                raise RuntimeError(f"Nginx map path not writable: {nginx_map_dir}")
+                raise RuntimeError(f"Nginx map path not writable: {nginx_map_dir}") from e
     else:
         log.warning("Nginx map directory does not exist yet", path=str(nginx_map_dir))
         try:
@@ -138,7 +138,7 @@ async def lifespan(app: FastAPI):
         except (OSError, PermissionError) as e:
             log.error("Cannot create nginx map directory", path=str(nginx_map_dir), error=str(e))
             if not settings.debug:
-                raise RuntimeError(f"Cannot create nginx map directory: {nginx_map_dir}")
+                raise RuntimeError(f"Cannot create nginx map directory: {nginx_map_dir}") from e
 
     # Initialize database
     await init_db()
