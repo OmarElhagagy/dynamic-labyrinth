@@ -1,443 +1,165 @@
-# 🌀 Dynamic Labyrinth
+# Ingestion Service
 
-> **Adaptive Honeypot Orchestration System** — A multi-tiered deception platform that dynamically escalates attackers through increasingly sophisticated honeypot environments based on real-time threat analysis.
-
-[![CI](https://github.com/YOUR_ORG/dynamic-labyrinth/actions/workflows/ci.yml/badge.svg)](https://github.com/YOUR_ORG/dynamic-labyrinth/actions/workflows/ci.yml)
-[![Security](https://github.com/YOUR_ORG/dynamic-labyrinth/actions/workflows/security.yml/badge.svg)](https://github.com/YOUR_ORG/dynamic-labyrinth/actions/workflows/security.yml)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+The **ingestion** service is responsible for collecting raw events from Honeytrap
+instances, normalizing them into the canonical schema, and delivering them to
+**Cerebrum** for decision-making.
 
 ---
 
-## 📖 Table of Contents
-
-- [Overview](#-overview)
-- [Architecture](#-architecture)
-- [Components](#-components)
-- [Quick Start](#-quick-start)
-- [Configuration](#-configuration)
-- [API Reference](#-api-reference)
-- [Operations](#-operations)
-- [Development](#-development)
-- [Team](#-team)
-
----
-
-## 🎯 Overview
-
-Dynamic Labyrinth is a honeypot orchestration system that:
-
-1. **Detects** malicious connections via lightweight Level 1 honeypots
-2. **Analyzes** attacker behavior using ML-based threat scoring (Cerebrum)
-3. **Escalates** sophisticated attackers to higher-fidelity environments
-4. **Routes** sessions seamlessly via nginx cookie-based session affinity
-5. **Captures** rich telemetry for threat intelligence
-
-### Escalation Tiers
-
-| Level | Fidelity | Purpose | Pool Size |
-|-------|----------|---------|-----------|
-| **L1** | Low | Initial detection, quick fingerprinting | 5 containers |
-| **L2** | Medium | Extended interaction, behavioral analysis | 3 containers |
-| **L3** | High | Full system emulation, APT engagement | 1 container |
-
----
-
-## 🏗 Architecture
+## Architecture
 
 ```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                              INTERNET                                        │
-└─────────────────────────────────────────────────────────────────────────────┘
-                                    │
-                                    ▼
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                           NGINX REVERSE PROXY                                │
-│  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐              │
-│  │  HTTP Routing   │  │  Stream Proxy   │  │  Cookie Map     │              │
-│  │  (80, 443)      │  │  (22,21,23...)  │  │  (dlsess→pool)  │              │
-│  └─────────────────┘  └─────────────────┘  └─────────────────┘              │
-└─────────────────────────────────────────────────────────────────────────────┘
-            │                       │                       │
-            ▼                       ▼                       ▼
-┌───────────────────┐  ┌───────────────────┐  ┌───────────────────┐
-│   LEVEL 1 POOL    │  │   LEVEL 2 POOL    │  │   LEVEL 3 POOL    │
-│  ┌─────┐ ┌─────┐  │  │  ┌─────┐ ┌─────┐  │  │     ┌─────┐       │
-│  │ L1a │ │ L1b │  │  │  │ L2a │ │ L2b │  │  │     │ L3  │       │
-│  └─────┘ └─────┘  │  │  └─────┘ └─────┘  │  │     └─────┘       │
-│  ┌─────┐ ┌─────┐  │  │     ┌─────┐       │  │                   │
-│  │ L1c │ │ L1d │  │  │     │ L2c │       │  │                   │
-│  └─────┘ └─────┘  │  │     └─────┘       │  │                   │
-│     ┌─────┐       │  │                   │  │                   │
-│     │ L1e │       │  │                   │  │                   │
-│     └─────┘       │  │                   │  │                   │
-└───────────────────┘  └───────────────────┘  └───────────────────┘
-            │                       │                       │
-            └───────────────────────┼───────────────────────┘
-                                    │
-                                    ▼
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                            ORCHESTRATOR (FastAPI)                            │
-│  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐              │
-│  │  Pool Manager   │  │  Nginx Writer   │  │  Session Store  │              │
-│  └─────────────────┘  └─────────────────┘  └─────────────────┘              │
-└─────────────────────────────────────────────────────────────────────────────┘
-            │                       │                       │
-            ▼                       ▼                       ▼
-┌───────────────────┐  ┌───────────────────┐  ┌───────────────────┐
-│     CEREBRUM      │  │     DISCOVERY     │  │     INGESTION     │
-│  (ML Analysis)    │  │  (Service Enum)   │  │  (Event Pipeline) │
-└───────────────────┘  └───────────────────┘  └───────────────────┘
-                                    │
-                                    ▼
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                              DASHBOARD                                       │
-│                    (Real-time Visualization)                                 │
-└─────────────────────────────────────────────────────────────────────────────┘
-```
-
-### Network Layout
-
-| Network | CIDR | Purpose |
-|---------|------|---------|
-| `frontend` | 10.0.1.0/24 | Public-facing (nginx, honeypots) |
-| `backend` | 10.0.2.0/24 | Internal services (orchestrator, cerebrum) |
-| `management` | 10.0.3.0/24 | Operations (monitoring, backups) |
-
----
-
----
-
-## 🚀 Quick Start
-
-### Prerequisites
-
-- Docker 24.0+
-- Docker Compose 2.20+
-- Python 3.11+ (for development)
-- Go 1.21+ (for honeytrap development)
-
-### 1. Clone Repository
-
-```bash
-git clone https://github.com/YOUR_ORG/dynamic-labyrinth.git
-cd dynamic-labyrinth
-```
-
-### 2. Configure Environment
-
-```bash
-cp .env.example .env
-# Edit .env with your settings
-```
-
-### 3. Start Services
-
-```bash
-# Development mode (with hot reload)
-docker-compose up -d
-
-# Production mode (with resource limits)
-docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d
-```
-
-### 4. Pre-warm Container Pools
-
-```bash
-./infra/scripts/prewarm.sh
-```
-
-### 5. Verify Deployment
-
-```bash
-# Check health
-curl http://localhost:8080/healthz
-
-# Check pool status
-python infra/scripts/pool_status.py
-
-# View logs
-docker-compose logs -f orchestrator
+Honeytrap (file pusher)  →  file_ingest.py  (tail JSONL files)
+                                    ↓
+Honeytrap (HTTP pusher)  →  POST /ingest/honeytrap
+                                    ↓
+Any internal service     →  POST /ingest/event   (HMAC-required)
+                                    ↓
+                            normalize.py   (Pydantic validation + field mapping)
+                                    ↓
+                            queue_manager.py  (Redis or in-memory asyncio.Queue)
+                                    ↓
+                            → Cerebrum POST /events  (HMAC-signed, with retry)
 ```
 
 ---
 
-## ⚙️ Configuration
-
-### Environment Variables
+## Environment Variables
 
 | Variable | Default | Description |
-|----------|---------|-------------|
-| `ORCHESTRATOR_HOST` | `0.0.0.0` | Bind address |
-| `ORCHESTRATOR_PORT` | `8080` | HTTP port |
-| `DATABASE_URL` | `sqlite+aiosqlite:///./data/orchestrator.db` | Database connection |
-| `SECRET_KEY` | (required) | HMAC signing key |
-| `CEREBRUM_URL` | `http://cerebrum:8000` | ML scoring endpoint |
-| `NGINX_MAP_PATH` | `/etc/nginx/maps/session_map.conf` | Session routing map |
-| `LOG_LEVEL` | `INFO` | Logging verbosity |
+|---|---|---|
+| `CEREBRUM_URL` | `http://cerebrum:8001` | Cerebrum service base URL |
+| `HMAC_SECRET` | `change-me-in-production` | Shared secret for HMAC auth |
+| `HMAC_REPLAY_WINDOW` | `30` | Max age (seconds) for HMAC timestamps |
+| `REDIS_URL` | _(empty)_ | Redis URL, e.g. `redis://redis:6379/0`. If empty, falls back to in-memory queue |
+| `INGEST_LOG_PATHS` | `/var/log/honeytrap/events.jsonl` | Comma-separated JSONL file paths to tail |
+| `INGEST_FROM_START` | `false` | Replay entire file on startup |
+| `INGEST_POLL_MS` | `200` | File polling interval (ms) |
+| `ENABLE_FILE_INGEST` | `true` | Enable JSONL file tailing |
+| `HONEYTRAP_ALLOWED_IPS` | _(empty)_ | Comma-separated IPs allowed to POST to `/ingest/honeytrap`. Empty = all IPs allowed |
+| `REQUIRE_HMAC_ON_WEBHOOK` | `false` | Enforce HMAC on `/ingest/honeytrap` |
+| `LOG_LEVEL` | `INFO` | Logging level |
+| `DLQ_PATH` | `/tmp/dl_dead_letter.jsonl` | Dead-letter file for permanently failed deliveries |
 
-### Pool Configuration (`orchestrator/pools.yaml`)
+---
 
-```yaml
-pools:
-  level1:
-    image: ghcr.io/your-org/honeytrap-level1:latest
-    min_size: 5
-    max_size: 10
-    network: frontend
-    
-  level2:
-    image: ghcr.io/your-org/honeytrap-level2:latest
-    min_size: 3
-    max_size: 6
-    network: frontend
-    
-  level3:
-    image: ghcr.io/your-org/honeytrap-level3:latest
-    min_size: 1
-    max_size: 2
-    network: frontend
+## Running Locally
+
+```bash
+# Install dependencies
+pip install -r requirements.txt
+
+# Start the service
+CEREBRUM_URL=http://localhost:8001 \
+HMAC_SECRET=my-secret \
+uvicorn main:app --host 0.0.0.0 --port 8002 --reload
 ```
 
 ---
 
-## 📡 API Reference
+## API Endpoints
 
-### Endpoints
-
-#### `POST /escalate`
-
-Request escalation decision from Cerebrum and route session.
+### `POST /ingest/event` — Single event (HMAC required)
 
 ```bash
-curl -X POST http://localhost:8080/escalate \
+BODY='{"type":"authentication_failed","src-ip":"1.2.3.4","protocol":"ssh","username":"root","password":"pass"}'
+TS=$(date +%s)
+SIG=$(echo -e "POST\n/ingest/event\n${TS}\n$(echo -n "${BODY}" | sha256sum | cut -d' ' -f1)" \
+      | openssl dgst -sha256 -hmac "my-secret" | awk '{print $2}')
+
+curl -X POST http://localhost:8002/ingest/event \
   -H "Content-Type: application/json" \
-  -H "X-Signature: <hmac-signature>" \
-  -H "X-Timestamp: <unix-timestamp>" \
+  -H "X-DL-Timestamp: ${TS}" \
+  -H "X-DL-Signature: ${SIG}" \
+  -d "{\"event\": ${BODY}, \"source\": \"file\"}"
+```
+
+### `POST /ingest/bulk` — Bulk events (HMAC required)
+
+```bash
+curl -X POST http://localhost:8002/ingest/bulk \
+  -H "Content-Type: application/json" \
+  -H "X-DL-Timestamp: ..." \
+  -H "X-DL-Signature: ..." \
+  -d '{"events": [{...}, {...}], "source": "file"}'
+```
+
+### `POST /ingest/honeytrap` — Honeytrap webhook (no auth by default)
+
+```bash
+curl -X POST http://localhost:8002/ingest/honeytrap \
+  -H "Content-Type: application/json" \
   -d '{
-    "session_id": "abc123",
-    "source_ip": "192.168.1.100",
-    "current_level": 1,
-    "threat_score": 0.75,
-    "indicators": ["port_scan", "brute_force"]
+    "event_type": "authentication_failed",
+    "source_ip": "10.0.0.5",
+    "destination_port": 22,
+    "protocol": "ssh",
+    "timestamp": "2025-10-16T19:00:00Z",
+    "data": {"username": "admin", "password": "admin123"}
   }'
 ```
 
-**Response:**
+### `POST /ingest/replay` — Replay a JSONL file (HMAC required)
+
+```bash
+curl -X POST http://localhost:8002/ingest/replay \
+  -H "X-DL-Timestamp: ..." \
+  -H "X-DL-Signature: ..." \
+  -d '{"path": "/var/log/honeytrap/archive.jsonl", "source": "file", "limit": 5000}'
+```
+
+### `GET /health` — Health check
+
 ```json
 {
-  "session_id": "abc123",
-  "decision": "escalate",
-  "target_level": 2,
-  "container_id": "honeytrap-l2-abc123",
-  "reason": "High threat score with multiple indicators"
+  "status": "ok",
+  "queue_size": 42,
+  "redis_connected": true,
+  "cerebrum_reachable": true
 }
 ```
 
-#### `GET /session/{session_id}`
+### `GET /metrics` — Prometheus metrics
 
-Get session details.
+### `GET /stats` — JSON statistics
 
-```bash
-curl http://localhost:8080/session/abc123 \
-  -H "X-Signature: <hmac-signature>" \
-  -H "X-Timestamp: <unix-timestamp>"
-```
+---
 
-#### `GET /pools`
+## Canonical Event Schema
 
-Get pool status and statistics.
-
-```bash
-curl http://localhost:8080/pools \
-  -H "X-Signature: <hmac-signature>" \
-  -H "X-Timestamp: <unix-timestamp>"
-```
-
-**Response:**
 ```json
 {
-  "level1": {
-    "available": 3,
-    "in_use": 2,
-    "total": 5,
-    "healthy": 5
-  },
-  "level2": {
-    "available": 2,
-    "in_use": 1,
-    "total": 3,
-    "healthy": 3
-  },
-  "level3": {
-    "available": 1,
-    "in_use": 0,
-    "total": 1,
-    "healthy": 1
-  }
+  "id": "evt-a3f2c1b4d5e6f7a8",
+  "session_id": "src_a3f2c1b4",
+  "timestamp": "2025-10-16T19:00:00+00:00",
+  "protocol": "ssh",
+  "event_type": "authentication_failed",
+  "indicators": ["user:root", "password_attempt:pa***"],
+  "source_ip": "1.2.3.4",
+  "destination_port": 22,
+  "raw": { "...original record..." },
+  "ingestion_source": "file"
 }
 ```
 
-#### `GET /healthz`
+---
 
-Health check endpoint.
+## Running Tests
 
-#### `GET /metrics`
-
-Prometheus metrics endpoint.
-
-### Authentication
-
-All endpoints (except `/healthz`) require HMAC-SHA256 authentication:
-
-```python
-import hmac
-import hashlib
-import time
-
-def sign_request(secret_key: str, body: str = "") -> tuple[str, str]:
-    timestamp = str(int(time.time()))
-    message = f"{timestamp}:{body}"
-    signature = hmac.new(
-        secret_key.encode(),
-        message.encode(),
-        hashlib.sha256
-    ).hexdigest()
-    return signature, timestamp
+```bash
+cd ingestion
+pip install -r requirements.txt pytest pytest-asyncio
+pytest tests/ -v
 ```
 
 ---
 
-## 🔧 Operations
+## Supported Pusher Formats
 
-### Health Checks
+| Source | Description |
+|---|---|
+| `file` | Honeytrap JSONL file-pusher format (`src-ip`, `type`, `start_time`, …) |
+| `http` / `webhook` | Honeytrap HTTP-pusher webhook format (`source_ip`, `event_type`, `data`, …) |
+| `generic` | Auto-detection fallback using common field name heuristics |
 
-```bash
-# Check all containers
-./infra/scripts/healthcheck.sh
-
-# Check specific pool
-./infra/scripts/healthcheck.sh level1
-```
-
-### Deployment
-
-```bash
-# Deploy with zero downtime
-./infra/scripts/deploy.sh
-
-# Rollback to previous version
-./infra/scripts/rollback.sh
-```
-
-### Backup & Restore
-
-```bash
-# Create backup
-./infra/scripts/backup.sh
-
-# Backups stored in: ./backups/YYYY-MM-DD_HH-MM-SS/
-```
-
-### Monitoring
-
-```bash
-# Start monitoring stack (Prometheus + Grafana)
-./infra/scripts/monitoring.sh start
-
-# Access Grafana: http://localhost:3000
-# Default credentials: admin/admin
-```
-
-### Pool Management
-
-```bash
-# View pool status
-python infra/scripts/pool_status.py
-
-# Output:
-# ┌─────────┬───────────┬────────┬───────┬─────────┐
-# │ Level   │ Available │ In Use │ Total │ Healthy │
-# ├─────────┼───────────┼────────┼───────┼─────────┤
-# │ level1  │ 3         │ 2      │ 5     │ 5       │
-# │ level2  │ 2         │ 1      │ 3     │ 3       │
-# │ level3  │ 1         │ 0      │ 1     │ 1       │
-# └─────────┴───────────┴────────┴───────┴─────────┘
-```
-
----
-
-## 🛠 Development
-
-### Setup
-
-```bash
-# Create virtual environment
-python -m venv venv
-source venv/bin/activate  # Linux/Mac
-.\venv\Scripts\activate   # Windows
-
-# Install dependencies
-pip install -r orchestrator/requirements.txt
-pip install -r tests/requirements.txt
-
-# Install pre-commit hooks
-pre-commit install
-```
-
-### Running Tests
-
-```bash
-# Unit tests
-cd orchestrator
-pytest --cov=. --cov-report=html
-
-# Integration tests
-docker-compose up -d
-pytest tests/integration/
-
-# Load tests
-./tests/load/run_load_test.sh
-```
-
-### Code Quality
-
-```bash
-# Format code
-black orchestrator/
-isort orchestrator/
-
-# Lint
-ruff check orchestrator/
-
-# Type check
-mypy orchestrator/
-```
-
-### Building Images
-
-```bash
-# Build all images locally
-docker-compose build
-
-# Build specific image
-docker build -f docker/honeytrap-level1.Dockerfile -t honeytrap-level1 .
-```
-
----
-
-]
-
----
-
-## 📄 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
----
-
-## 🔗 Related Documentation
-
-- [API Specification](docs/api/openapi.yaml)
-- [Operations Runbook](docs/runbook.md)
-- [Architecture Decision Records](docs/adr/)
-- [Integration Guide](docs/integration/)
+To add a new adapter, register a function in `normalize.ADAPTER_MAP`.
