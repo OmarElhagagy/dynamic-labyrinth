@@ -30,7 +30,7 @@ RUN CGO_ENABLED=1 GOOS=linux go build \
 # =============================================================================
 # Runtime Stage
 # =============================================================================
-FROM alpine:3.19
+FROM alpine:3.23
 
 LABEL maintainer="Dynamic Labyrinth Team"
 LABEL description="Honeytrap Level 3 - High Interaction Honeypot"
