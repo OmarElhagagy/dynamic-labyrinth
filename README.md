@@ -105,17 +105,6 @@ Dynamic Labyrinth is a honeypot orchestration system that:
 
 ---
 
-## 🧩 Components
-
-| Component | Owner | Description |
-|-----------|-------|-------------|
-| **Orchestrator** | Omar | FastAPI service managing container pools, session routing, escalation |
-| **Honeytrap** | Salma | Go-based honeypot with protocol emulation (SSH, FTP, HTTP, etc.) |
-| **Cerebrum** | Yara | ML threat scoring engine for escalation decisions |
-| **Dashboard** | Ahmed | Real-time visualization and analytics |
-| **Discovery** | — | Service enumeration and fingerprinting |
-| **Ingestion** | — | Event pipeline to Elasticsearch/Kafka |
-
 ---
 
 ## 🚀 Quick Start
@@ -436,14 +425,7 @@ docker build -f docker/honeytrap-level1.Dockerfile -t honeytrap-level1 .
 
 ---
 
-## 👥 Team
-
-| Member | Role | Responsibilities |
-|--------|------|------------------|
-| **Omar** | Infrastructure & Orchestration | Container orchestration, nginx routing, CI/CD, deployment |
-| **Yara** | ML & Threat Analysis | Cerebrum scoring engine, threat classification |
-| **Ahmed** | Dashboard & Analytics | Real-time visualization, metrics, alerting |
-| **Salma** | Honeytrap Core | Protocol emulation, service handlers, event capture |
+]
 
 ---
 
