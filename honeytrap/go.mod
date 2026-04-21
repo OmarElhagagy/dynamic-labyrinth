@@ -4,7 +4,7 @@ go 1.13
 
 require (
 	github.com/AndreasBriese/bbloom v0.0.0-20170702084017-28f7e881ca57 // indirect
-	github.com/BurntSushi/toml v0.3.0
+	github.com/BurntSushi/toml v1.6.0
 	github.com/Logicalis/asn1 v0.0.0-20160307192209-c9c836c1a3cd
 	github.com/PromonLogicalis/asn1 v0.0.0-20190312173541-d60463189a56 // indirect
 	github.com/Shopify/sarama v1.16.0
