@@ -1,0 +1,15 @@
+version: '3'
+services:
+  cerebrum:
+    build: ./cerebrum
+    ports:
+      - "8000:8000"
+    environment:
+      - ORCHESTRATOR_URL=http://orchestrator:8080
+      - HMAC_SECRET=shared-secret
+    volumes:
+      - ./cerebrum/cerebrum.db:/app/cerebrum.db
+  orchestrator:
+    image: your-orchestrator-image:latest   # placeholder
+    ports:
+      - "8080:8080"
